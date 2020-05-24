@@ -1,4 +1,4 @@
 #pragma once
 enum class scheme {
-	gray, blue, green, red, color, zero
+	gray, blue, green, red, color, zero, richred, blueviolet
 };

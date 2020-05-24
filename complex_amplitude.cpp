@@ -206,6 +206,18 @@ vector<unsigned char> complex_amplitude::form_pixel(unsigned char value, scheme 
 			pixel.push_back(value);
 			break;
 		}
+		case scheme::richred: {
+			pixel.push_back(value * value * value / (255 * 255));
+			pixel.push_back(value * value * value / (255 * 255));
+			pixel.push_back(value);
+			break;
+		}
+		case scheme::blueviolet: {
+			pixel.push_back(255 * exp(1 - value * value / (255 * 255)));
+			pixel.push_back(value * value * value / (255 * 255));
+			pixel.push_back(value);
+			break;
+		}
 		default: {
 			throw runtime_error("Incorrect color name");
 		}

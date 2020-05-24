@@ -196,6 +196,7 @@ vector<unsigned char> BMP::serialize(scheme color_scheme)
 		}
 	}
 	for_each(pixels.rbegin(), pixels.rend(), [&](vector<vector<unsigned char>> row) {
+		unsigned char monochromatic_pixel;
 		for (vector<unsigned char> pixel : row) {
 			switch (color_scheme) {
 			case scheme::color:
@@ -203,7 +204,7 @@ vector<unsigned char> BMP::serialize(scheme color_scheme)
 					serializedBMP.push_back(pixel.at(i));
 				}
 				break;
-			case scheme::blue : 
+			case scheme::blue:
 				serializedBMP.push_back(pixel.at(0));
 				serializedBMP.push_back(0);
 				serializedBMP.push_back(0);
@@ -219,12 +220,17 @@ vector<unsigned char> BMP::serialize(scheme color_scheme)
 				serializedBMP.push_back(pixel.at(2));
 				break;
 			case scheme::gray:
-				unsigned char monochromatic_pixel = apply_scheme(pixel, color_scheme);
+				monochromatic_pixel = apply_scheme(pixel, color_scheme);
 				for (int i = 0; i < 3; i++) {
 					serializedBMP.push_back(monochromatic_pixel);
 				}
 				//serializedBMP.push_back(apply_scheme(pixel, color_scheme));
 				break;
+			default: {
+				for (int i = 0; i < 3; i++) {
+					serializedBMP.push_back(pixel.at(i));
+				}
+			}
 			}
 			if (count_RGB_channels > 3) {
 				for (int i = 3; i < count_RGB_channels; i++) {
