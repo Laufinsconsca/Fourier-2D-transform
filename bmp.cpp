@@ -21,10 +21,10 @@ BMP::BMP(string filename) : BMP() {
 	ifstream in(filename, ios::binary | ios::in);
 	in.unsetf(ios_base::skipws);
 	if (!in.fail()) {
-		if (!(in >> *this)) throw runtime_error("Файл " + filename + " пуст или содержит неверные данные!");
+		if (!(in >> *this)) throw runtime_error("File " + filename + " is empty or contains invalid data!");
 	}
 	else {
-		throw runtime_error("Файл " + filename + " не найден!");
+		throw runtime_error("File " + filename + " not found!");
 	}
 	in.close();
 }
@@ -267,7 +267,7 @@ ostream& operator<<(ostream& out, BMP& bmp){
 void BMP::write(string filename, scheme color) {
 	if (this->color != color) this->color = color;
 	ofstream output(filename, ios::binary | ios::trunc | ios::out);
-	if (!output) throw runtime_error("Запись в файл" + filename + " невозможна!");
+	if (!output) throw runtime_error("Writing to " + filename + " file is not possible!");
 	output << *this;
 	output.close();
 }
