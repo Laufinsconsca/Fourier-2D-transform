@@ -12,11 +12,11 @@ private:
 		} else if (pixel.at(0) == pixel.at(1) && pixel.at(1) == pixel.at(2)) {
 			return scheme::gray;
 		} else if (pixel.at(1) == 0 && pixel.at(2) == 0) {
-			return scheme::blue;
+			return scheme::only_blue_channel;
 		} else if (pixel.at(0) == 0 && pixel.at(2) == 0) {
-			return scheme::green;
+			return scheme::only_green_channel;
 		} else if (pixel.at(0) == 0 && pixel.at(1) == 0) {
-			return scheme::red;
+			return scheme::only_red_channel;
 		} else {
 			return scheme::color;
 		}

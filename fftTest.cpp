@@ -1,20 +1,17 @@
 ﻿#include <iostream>
 #include "bmp.h"
 #include "complex_amplitude.h"
+#include "vortex.h";
 
 using namespace std;
-
+class vortex;
 int main() {
-	string input_amplitude_name("gauss.bmp");
-	string input_phase_name("tp=10,pow_fi=2.bmp");
-	BMP amplitude(input_amplitude_name);
-	BMP phase(input_phase_name);
-	complex_amplitude test_image(amplitude, phase);
-	test_image.FFT2D(4); // 4 - FFT expansion, this parameter allows you to zoom in on the field
-<<<<<<< HEAD:fftTest.cpp
-	test_image.write("fourier.bmp", field_type::argument, scheme::red);
+	image_size size(512, 512);
+	vortex vortex(5, 1, 3., 0.15, 30.);
+	complex_amplitude test_vortex(vortex, size, scheme::rainbow);
+	test_vortex.write("vortex.bmp", out_field_type::argument);
+	test_vortex.FFT2D(8);
+	test_vortex.write("intensity.bmp", out_field_type::intensity, scheme::fire);
+	test_vortex.write("amplitude.bmp", out_field_type::amplitude, scheme::fire);
+	test_vortex.write("phase.bmp", out_field_type::argument, scheme::rainbow);
 }
-=======
-	test_image.write("fourier.bmp", field_type::argument, scheme::blueviolet);
-}
->>>>>>> Two color schemes were added:fftTest.cpp

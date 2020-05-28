@@ -1,4 +1,4 @@
 #pragma once
-enum field_type {
+enum out_field_type {
 	amplitude, argument, intensity
 };

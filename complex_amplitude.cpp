@@ -1,6 +1,9 @@
-#include "complex_amplitude.h"
 #define _USE_MATH_DEFINES
+#include "complex_amplitude.h"
+#include "vortex.h"
 #include <math.h>
+
+string _to_string(scheme color);
 
 complex_amplitude::complex_amplitude() : color(scheme::gray), pixels(), count_RGB_channels(1) {}
 
@@ -13,7 +16,7 @@ complex_amplitude::complex_amplitude(BMP& amplitudeBMP, BMP& phaseBMP) : count_R
 		throw runtime_error("Inconsistent sizes");
 	}
 	size = amplitude_size;
-	color = set_color(amplitudeBMP, phaseBMP, field_type::amplitude);
+	color = set_color(amplitudeBMP, phaseBMP, out_field_type::amplitude);
 	double amplitude, phase;
 	int i = 0, j = 0, x, y;
 	vector<vector<vector<unsigned char>>>::iterator amplitude_row = amplitudeBMP.first_row();
@@ -46,6 +49,60 @@ complex_amplitude::complex_amplitude(BMP& amplitudeBMP, BMP& phaseBMP) : count_R
 	}
 }
 
+complex_amplitude::complex_amplitude(vortex& vortex, image_size size, scheme color) {
+	this->color = color;
+	this->count_RGB_channels = 4;
+	this->size = size;
+	double r = 5;
+	init_gauss(r, 3);
+	double hx, hy;
+	pixels.reserve(size.height);
+	hx = 2 * r / size.width;
+	hy = 2 * r / size.height;
+	pixels.reserve(size.height);
+	double tp_n;
+	bool tp_is_const = vortex.tp_is_const;
+	if (tp_is_const) {
+		tp_n = vortex.tp(0.);
+	}
+	vector<double> x(size.width);
+	x.at(0) = -r;
+	for (int i = 1; i < size.width; i++) {
+		x.at(i) = x.at(i - 1) + hx;
+	}
+	vector<double> y(size.width);
+	y.at(0) = -r;
+	for (int i = 1; i < size.height; i++) {
+		y.at(i) = y.at(i - 1) + hy;
+	}
+	for (int i = 0; i < size.height; i++) {
+		pixels.push_back(vector<complex<double>>());
+		pixels.at(i).reserve(size.width);
+		for (int j = 0; j < size.width; j++) {
+			double angle = atan2(-y.at(i), x.at(j));
+			double t = (tp_is_const ? tp_n : vortex.tp(10 * exp(-x.at(round(j)) * x.at(round(j)) - y.at(round(i)) * y.at(round(i)))));
+			pixels.at(i).push_back(polar(gauss.at(i).at(j), t * pow(angle, vortex.pow_fi)));
+		}
+	}
+}
+
+void complex_amplitude::init_gauss(double r, double sigma) {
+	gauss.clear();
+	double hx, hy, x, y;
+	hx = 2 * r / size.width;
+	hy = 2 * r / size.height;
+	gauss.reserve(size.height);
+	for (int i = 0; i < size.height; i++) {
+		y = -r + i * hy;
+		gauss.push_back(vector<double>());
+		gauss.at(i).reserve(size.width);
+		for (int j = 0; j < size.width; j++) {
+			x = -r + j * hx;
+			gauss.at(i).push_back((exp(-(x * x + y * y) / (2 * sigma * sigma))));
+		}
+	}
+}
+
 complex_amplitude& complex_amplitude::operator=(const complex_amplitude& obj){
 	if (this == &obj) return *this;
 	size = obj.size;
@@ -73,11 +130,12 @@ vector<complex<double>>& complex_amplitude::operator()(int& number, direction di
 			}
 			return temp_vector;
 		}
+		default: return temp_vector;
 	}
 }
 
-scheme complex_amplitude::set_color(BMP& amplitudeBMP, BMP& phaseBMP, field_type output_color_of) {
-	BMP& etalon = output_color_of == field_type::amplitude ? amplitudeBMP : phaseBMP;
+scheme complex_amplitude::set_color(BMP& amplitudeBMP, BMP& phaseBMP, out_field_type output_color_of) {
+	BMP& etalon = output_color_of == out_field_type::amplitude ? amplitudeBMP : phaseBMP;
 	if (etalon.get_color() != scheme::color) {
 		return etalon.get_color();
 	}
@@ -110,18 +168,18 @@ void complex_amplitude::replace(vector<complex<double>>& vector, int number, dir
 	}
 }
 
-double complex_amplitude::get_max(field_type type) {
+double complex_amplitude::get_max(out_field_type type) {
 	double max = -1.7976931348623157e+308;
 	for (vector<complex<double>> row : pixels) {
 		for (complex<double> pixel : row) {
 			switch (type) {
-				case field_type::amplitude: {
+				case out_field_type::amplitude: {
 					if (max < abs(pixel)) {
 						max = abs(pixel);
 					}
 					break;
 				}
-				case field_type::intensity: {
+				case out_field_type::intensity: {
 					if (max < abs(pixel) * abs(pixel)) {
 						max = abs(pixel) * abs(pixel);
 					}
@@ -133,7 +191,7 @@ double complex_amplitude::get_max(field_type type) {
 	return max;
 }
 
-void complex_amplitude::norm(field_type type) {
+void complex_amplitude::norm(out_field_type type) {
 	double max = get_max(type);
 	for (vector<complex<double>> row : pixels) {
 		for (complex<double> pixel : row) {
@@ -142,14 +200,18 @@ void complex_amplitude::norm(field_type type) {
 	}
 }
 
-void complex_amplitude::write(string filename, field_type type, scheme color) {
+void complex_amplitude::write(string filename, out_field_type type, scheme color) {
+	boolean scheme_is_trivial = color == scheme::gray || color == scheme::only_blue_channel || color == scheme::only_green_channel || color == scheme::only_red_channel;
+	if (!scheme_is_trivial) {
+		cmap = get_cmap(color, cmap);
+	}
 	double max = 0;
 	double output_value;
 	this->color = color;
-	if (type == field_type::amplitude || type == field_type::intensity) {
+	if (type == out_field_type::amplitude || type == out_field_type::intensity) {
 		max = get_max(type);
 	}
-	else if (type == field_type::argument) {
+	else if (type == out_field_type::argument) {
 		max = 2 * M_PI;
 	}
 	else {
@@ -177,30 +239,33 @@ void complex_amplitude::write(string filename, field_type type, scheme color) {
 	output.write(filename);
 }
 
-void complex_amplitude::write(string filename, field_type type) {
+void complex_amplitude::write(string filename, out_field_type type) {
 	write(filename, type, this->color);
 }
 
 vector<unsigned char> complex_amplitude::form_pixel(unsigned char value, scheme color) {
 	vector<unsigned char> pixel;
 	switch (color) {
+		case scheme::zero: {
+			throw runtime_error("Reserved color name");
+		}
 		case scheme::gray: {
 			pixel.push_back(value);
 			break;
 		}
-		case scheme::blue: {
+		case scheme::only_blue_channel: {
 			pixel.push_back(value);
 			pixel.push_back(0);
 			pixel.push_back(0);
 			break;
 		}
-		case scheme::green: {
+		case scheme::only_green_channel: {
 			pixel.push_back(0);
 			pixel.push_back(value);
 			pixel.push_back(0);
 			break;
 		}
-		case scheme::red: {
+		case scheme::only_red_channel: {
 			pixel.push_back(0);
 			pixel.push_back(0);
 			pixel.push_back(value);
@@ -213,13 +278,17 @@ vector<unsigned char> complex_amplitude::form_pixel(unsigned char value, scheme 
 			break;
 		}
 		case scheme::blueviolet: {
-			pixel.push_back(255 * exp(1 - value * value / (255 * 255)));
-			pixel.push_back(value * value * value / (255 * 255));
+			pixel.push_back(255 * exp(value/255 - value * value / (255 * 255)));
+			pixel.push_back(value * value * value * value / (255 * 255 * 255));
 			pixel.push_back(value);
 			break;
 		}
 		default: {
-			throw runtime_error("Incorrect color name");
+			unsigned char char_value = round(255 - value);
+			pixel.push_back(cmap.at(char_value).at(0));
+			pixel.push_back(cmap.at(char_value).at(1));
+			pixel.push_back(cmap.at(char_value).at(2));
+			break;
 		}
 	}
 	return pixel;
@@ -301,6 +370,34 @@ void complex_amplitude::IFFT2D(int expansion) {
 	_FFT2D(-1, expansion);
 }
 
+void complex_amplitude::FresnelT(double rx, double ry, double distance, double wavelength, int expansion, int direction) {
+	int i, j;
+	double x, y, hx, hy, t;
+	complex<double> ex, ey;
+	hx = rx / (size.width - 1);
+	hy = ry / (size.width - 1);
+	t = wavelength / (2 * distance) * direction;
+	for (i = 0; i < size.height; i++) {
+		ex = polar(1., pow(-ry / 2 + i * hy, 2) * t);
+		for (j = 0; j < size.width; j++) {
+			pixels.at(i).at(j) *= ex * polar(1., pow(-rx / 2 + j * hx, 2) * t);
+		}
+	}
+	_FFT2D(direction, expansion);
+}
+
+//void complex_amplitude::FresnelT(double rx, double ry, double distance, double wavelength, int expansion) {
+//	//wavelength /= 1e9;
+//	int size = sqrt(this->size.width * this->size.height);
+//	if (distance > 50 * size) {
+//		FresnelT(rx, ry, distance, wavelength, 1, expansion);
+//	}
+//	else {
+//		FresnelT(rx, ry, size * 100, wavelength, 1, expansion);
+//		FresnelT(rx, ry, size * 100 - distance, wavelength, -1, expansion);
+//	}
+//}
+
 vector<complex<double>>& complex_amplitude::FFT1D(int dir, int size, vector<complex<double>>& transforming_vector) {
 	int i, k, m = 0;
 	for (i = 1; i < size; i <<= 1, m++);
@@ -376,4 +473,43 @@ void complex_amplitude::ifftshift() {
 	circshift((size.width + 1) / 2, (size.height + 1) / 2);
 }
 
+map<unsigned char, vector<unsigned char>>& complex_amplitude::get_cmap(scheme color_scheme, map<unsigned char, vector<unsigned char>>& cmap) {
+	string buf;
+	ifstream in("cmap/" + _to_string(color_scheme) + ".cmap", ios::in);
+	vector<unsigned char> buf_vector;
+	if (!in.fail()) {
+		for (int i = 0; i < 256; i++) {
+			buf_vector = vector<unsigned char>(3);
+			in >> buf;
+			buf_vector.at(2) = stod(buf);
+			in >> buf;
+			buf_vector.at(1) = stod(buf);
+			in >> buf;
+			buf_vector.at(0) = stod(buf);
+			cmap[i] = buf_vector;
+			buf_vector.clear();
+		}
+	}
+	else {
+		throw runtime_error("Файл " + _to_string(color_scheme) + ".cmap не найден!");
+	}
+	in.close();
+	return cmap;
+}
 
+string _to_string(scheme color) {
+	switch (color) {
+	case scheme::gray: return "gray";
+	case scheme::only_blue_channel: return "blue";
+	case scheme::only_red_channel: return "red";
+	case scheme::only_green_channel: return "green";
+	case scheme::dusk: return "dusk";
+	case scheme::dawn: return "dawn";
+	case scheme::fire: return "fire";
+	case scheme::seashore: return "seashore";
+	case scheme::kryptonite: return "kryptonite";
+	case scheme::teals: return "teals";
+	case scheme::rainbow: return "rainbow";
+	default: return "zero";
+	}
+}

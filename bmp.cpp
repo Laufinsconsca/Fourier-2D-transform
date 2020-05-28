@@ -21,10 +21,10 @@ BMP::BMP(string filename) : BMP() {
 	ifstream in(filename, ios::binary | ios::in);
 	in.unsetf(ios_base::skipws);
 	if (!in.fail()) {
-		if (!(in >> *this)) throw runtime_error("File " + filename + " is empty or contains invalid data!");
+		if (!(in >> *this)) throw runtime_error("Файл " + filename + " пуст или содержит неверные данные!");
 	}
 	else {
-		throw runtime_error("File " + filename + " not found!");
+		throw runtime_error("Файл " + filename + " не найден!");
 	}
 	in.close();
 }
@@ -58,23 +58,23 @@ const unsigned char& BMP::operator()(int const row, int const column, scheme con
 unsigned char BMP::apply_scheme(vector<unsigned char> pixel, scheme color) {
 	switch (color) {
 	case scheme::gray: {
-		if (this->color == color || this->color == scheme::blue) {
+		if (this->color == color || this->color == scheme::only_blue_channel) {
 			return pixel.at(0);
-		} else if (this->color == scheme::green) {
+		} else if (this->color == scheme::only_green_channel) {
 			return pixel.at(1);
-		} else if (this->color == scheme::red) {
+		} else if (this->color == scheme::only_red_channel) {
 			return pixel.at(2);
 		} else {
 			return static_cast<unsigned char>(0.11 * pixel.at(0) + 0.59 * pixel.at(1) + 0.3 * pixel.at(2));
 		}
 	}
-	case scheme::blue: {
+	case scheme::only_blue_channel: {
 		return pixel.at(0);
 	}
-	case scheme::green: {
+	case scheme::only_green_channel: {
 		return pixel.at(1);
 	}
-	case scheme::red: {
+	case scheme::only_red_channel: {
 		return pixel.at(2);
 	}
 	default: {
@@ -199,22 +199,17 @@ vector<unsigned char> BMP::serialize(scheme color_scheme)
 		unsigned char monochromatic_pixel;
 		for (vector<unsigned char> pixel : row) {
 			switch (color_scheme) {
-			case scheme::color:
-				for (int i = 0; i < 3; i++) {
-					serializedBMP.push_back(pixel.at(i));
-				}
-				break;
-			case scheme::blue:
+			case scheme::only_blue_channel:
 				serializedBMP.push_back(pixel.at(0));
 				serializedBMP.push_back(0);
 				serializedBMP.push_back(0);
 				break;
-			case scheme::green:
+			case scheme::only_green_channel:
 				serializedBMP.push_back(0);
 				serializedBMP.push_back(pixel.at(1));
 				serializedBMP.push_back(0);
 				break;
-			case scheme::red:
+			case scheme::only_red_channel:
 				serializedBMP.push_back(0);
 				serializedBMP.push_back(0);
 				serializedBMP.push_back(pixel.at(2));
@@ -224,7 +219,6 @@ vector<unsigned char> BMP::serialize(scheme color_scheme)
 				for (int i = 0; i < 3; i++) {
 					serializedBMP.push_back(monochromatic_pixel);
 				}
-				//serializedBMP.push_back(apply_scheme(pixel, color_scheme));
 				break;
 			default: {
 				for (int i = 0; i < 3; i++) {

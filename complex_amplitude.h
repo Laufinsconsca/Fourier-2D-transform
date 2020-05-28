@@ -1,13 +1,17 @@
 #pragma once
 #include <complex>
 #include "bmp.h";
-#include "field_type.h";
+#include "out_field_type.h";
 #include "direction.h";
+#include <map>
 
+class vortex;
 class complex_amplitude {
 	image_size size;
 	scheme color;
 	int count_RGB_channels;
+	vector<vector<double>> gauss;
+	map<unsigned char, vector<unsigned char>> cmap;
 private:
 	vector<vector<complex<double>>> pixels;
 	void _FFT2D(int dir, int expansion);
@@ -15,23 +19,28 @@ private:
 	void add_channels(vector<unsigned char>& pixel, int count_RGB_channels);
 	vector<unsigned char> form_pixel(unsigned char value, scheme color);
 	vector<unsigned char> form_pixel(unsigned char value);
+	map<unsigned char, vector<unsigned char>>& get_cmap(scheme color_scheme, map<unsigned char, vector<unsigned char>>& cmap);
 public:
 	complex_amplitude();
 	complex_amplitude(const complex_amplitude& obj);
 	complex_amplitude(BMP& amplitudeBMP, BMP& phaseBMP);
+	complex_amplitude(vortex& vortex, image_size size, scheme color);
 	complex_amplitude& operator=(const complex_amplitude& obj);
 	complex<double>& operator()(int row, int column);
 	vector<complex<double>>& operator()(int& number, direction direction, vector<complex<double>>& temp_vector);
-	scheme set_color(BMP& amplitudeBMP, BMP& phaseBMP, field_type output_color_of);
+	scheme set_color(BMP& amplitudeBMP, BMP& phaseBMP, out_field_type output_color_of);
 	void replace(vector<complex<double>>& vector, int number, direction direction);
-	double get_max(field_type type);
-	void norm(field_type type);
+	double get_max(out_field_type type);
+	void norm(out_field_type type);
 
-	void write(string filename, field_type type, scheme color);
-	void write(string filename, field_type type);
+	void write(string filename, out_field_type type, scheme color);
+	void write(string filename, out_field_type type);
 
+	void init_gauss(double r, double sigma);
 	void FFT2D(int expansion);
 	void IFFT2D(int expansion);
+	void FresnelT(double rx, double ry, double distance, double wavelength, int expansion, int direction);
+	//void FresnelT(double rx, double ry, double distance, double wavelength, int expansion);
 	static boolean is_power_of_2(image_size size) {
 		int greater_value = size.height > size.width ? size.height : size.width;
 		int less_value = greater_value == size.width ? size.height : size.width;
