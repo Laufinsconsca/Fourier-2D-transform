@@ -1,20 +1,18 @@
 #include <Windows.h>
 #include <string>
+#include <functional>
 #pragma once
 
 using namespace std;
 
-class TP;
 class vortex {
-	TP* tp_s;
-	double tp_n;
+	function<double(double)> f_tp;
+public:
+	double pow_fi;
 	double r_d;
 	double r_hole;
 	double fi;
-public:
-	bool tp_is_const;
-	double pow_fi;
-	vortex(string tp, double pow_fi, double r_d, double r_hole, double fi);
+	vortex(function<double(double)> f, double pow_fi, double r_d, double r_hole, double fi);
 	vortex(double tp, double pow_fi, double r_d, double r_hole, double fi);
 	double tp(double r);
 };

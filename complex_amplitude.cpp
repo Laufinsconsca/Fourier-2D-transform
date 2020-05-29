@@ -60,11 +60,6 @@ complex_amplitude::complex_amplitude(vortex& vortex, image_size size, scheme col
 	hx = 2 * r / size.width;
 	hy = 2 * r / size.height;
 	pixels.reserve(size.height);
-	double tp_n;
-	bool tp_is_const = vortex.tp_is_const;
-	if (tp_is_const) {
-		tp_n = vortex.tp(0.);
-	}
 	vector<double> x(size.width);
 	x.at(0) = -r;
 	for (int i = 1; i < size.width; i++) {
@@ -80,8 +75,23 @@ complex_amplitude::complex_amplitude(vortex& vortex, image_size size, scheme col
 		pixels.at(i).reserve(size.width);
 		for (int j = 0; j < size.width; j++) {
 			double angle = atan2(-y.at(i), x.at(j));
-			double t = (tp_is_const ? tp_n : vortex.tp(10 * exp(-x.at(round(j)) * x.at(round(j)) - y.at(round(i)) * y.at(round(i)))));
-			pixels.at(i).push_back(polar(gauss.at(i).at(j), t * pow(angle, vortex.pow_fi)));
+			double t = vortex.tp(sqrt(x.at(round(j)) * x.at(round(j)) + y.at(round(i)) * y.at(round(i))));
+			pixels.at(i).push_back(polar(gauss.at(i).at(j), t * (angle > 0 ? pow(angle, vortex.pow_fi) : pow(angle + 2 * M_PI, vortex.pow_fi))));
+		}
+	}
+	create_hole(vortex, r);
+}
+
+void complex_amplitude::create_hole(vortex& vortex, double r) {
+	vortex.fi = vortex.fi*2*M_PI/360 + M_PI_2;
+	double n = size.width;
+	double t_cos = (n + cos(vortex.fi) * vortex.r_d * n / r) / 2;
+	double t_sin = (n + sin(vortex.fi) * vortex.r_d * n / r) / 2;
+	for (int i = round(t_cos - vortex.r_hole * n / r); i < round(t_cos + vortex.r_hole * n / r); i++) {
+		for (int j = round(t_sin - vortex.r_hole * n / r); j < round(t_sin + vortex.r_hole * n / r); j++) {
+			if (pow(i - t_cos, 2) + pow(j - t_sin, 2) < pow(vortex.r_hole * n / r, 2)) {
+				pixels.at(i).at(j) = 0;
+			}
 		}
 	}
 }

@@ -25,6 +25,7 @@ public:
 	complex_amplitude(const complex_amplitude& obj);
 	complex_amplitude(BMP& amplitudeBMP, BMP& phaseBMP);
 	complex_amplitude(vortex& vortex, image_size size, scheme color);
+	void create_hole(vortex& vortex, double r);
 	complex_amplitude& operator=(const complex_amplitude& obj);
 	complex<double>& operator()(int row, int column);
 	vector<complex<double>>& operator()(int& number, direction direction, vector<complex<double>>& temp_vector);
