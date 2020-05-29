@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <map>
 #include "scheme.h"
 #include "size.h"
 
@@ -14,11 +15,12 @@ using namespace std;
 class color_pixel;
 class BMP {
 	int count_RGB_channels = 4;
-	scheme color = scheme::color;
+	scheme color_scheme = scheme::color;
 	static int const BMPFILEHEADERsize = 14;
 	static int const BMPINFOHEADERsize = 124;
 	static int const COLORPROFILEsize = 12;
 	image_size size;
+	map<unsigned char, vector<unsigned char>> cmap;
 
 private:
 	vector<vector<vector<unsigned char>>> pixels;
@@ -35,11 +37,17 @@ private:
 		}
 		return temp;
 	};
+	vector<unsigned char> form_pixel(unsigned char value, scheme color);
+	vector<unsigned char> form_pixel(unsigned char value);
+	map<unsigned char, vector<unsigned char>>& get_cmap(scheme color_scheme, map<unsigned char, vector<unsigned char>>& cmap);
 
 public:
 	BMP();
+	BMP(scheme color);
 	BMP(vector<vector<vector<unsigned char>>>& picture);
 	BMP(vector<vector<vector<unsigned char>>>& picture, scheme color);
+	BMP(vector<vector<double>>& picture);
+	BMP(vector<vector<double>>& picture, scheme color);
 	BMP(string filename);
 	BMP(const BMP& obj);
 

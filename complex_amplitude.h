@@ -3,7 +3,6 @@
 #include "bmp.h";
 #include "out_field_type.h";
 #include "direction.h";
-#include <map>
 
 class vortex;
 class complex_amplitude {
@@ -11,15 +10,11 @@ class complex_amplitude {
 	scheme color;
 	int count_RGB_channels;
 	vector<vector<double>> gauss;
-	map<unsigned char, vector<unsigned char>> cmap;
 private:
 	vector<vector<complex<double>>> pixels;
 	void _FFT2D(int dir, int expansion);
 	vector<complex<double>>& FFT1D(int dir, int m, vector<complex<double>>& transforming_vector);
 	void add_channels(vector<unsigned char>& pixel, int count_RGB_channels);
-	vector<unsigned char> form_pixel(unsigned char value, scheme color);
-	vector<unsigned char> form_pixel(unsigned char value);
-	map<unsigned char, vector<unsigned char>>& get_cmap(scheme color_scheme, map<unsigned char, vector<unsigned char>>& cmap);
 public:
 	complex_amplitude();
 	complex_amplitude(const complex_amplitude& obj);
@@ -33,6 +28,9 @@ public:
 	void replace(vector<complex<double>>& vector, int number, direction direction);
 	double get_max(out_field_type type);
 	void norm(out_field_type type);
+	vector<vector<complex<double>>>& gradient(vector<vector<complex<double>>>& grad, char var);
+	double get_oam(BMP& oam, scheme color_scheme);
+	double get_oam(BMP& oam);
 
 	void write(string filename, out_field_type type, scheme color);
 	void write(string filename, out_field_type type);

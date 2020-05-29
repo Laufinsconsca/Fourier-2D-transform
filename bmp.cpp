@@ -1,9 +1,14 @@
 #include "bmp.h"
 #include "color_pixel.h"
 
-BMP::BMP() {
-	count_RGB_channels = 4;
+string _to_string(scheme color);
+
+BMP::BMP() : count_RGB_channels(4) {
 	initHeader();
+}
+
+BMP::BMP(scheme color) : BMP() {
+	this->color_scheme = color;
 }
 
 BMP::BMP(vector<vector<vector<unsigned char>>>& picture) : pixels(picture) {
@@ -14,8 +19,32 @@ BMP::BMP(vector<vector<vector<unsigned char>>>& picture) : pixels(picture) {
 }
 
 BMP::BMP(vector<vector<vector<unsigned char>>>& picture, scheme color) : BMP(picture) {
-	this->color = color;
+	this->color_scheme = color;
 }
+
+BMP::BMP(vector<vector<double>>& picture, scheme color_scheme) {
+	count_RGB_channels = 3;
+	this->color_scheme = color_scheme;
+	size.height = (int)picture.at(0).size();
+	size.width = (int)picture.size();
+	initHeader();
+	boolean scheme_is_trivial = color_scheme == scheme::gray || color_scheme == scheme::only_blue_channel || color_scheme == scheme::only_green_channel || color_scheme == scheme::only_red_channel;
+	if (!scheme_is_trivial) {
+		cmap = get_cmap(color_scheme, cmap);
+	}
+	pixels.reserve(size.height);
+	for (vector<double> source_row : picture) {
+		vector<vector<unsigned char>> dest_row;
+		dest_row.reserve(size.width);
+		for (double pixel : source_row) {
+			dest_row.push_back(form_pixel(pixel < 0 ? 0 : round(pixel)));
+		}
+		pixels.push_back(dest_row);
+		dest_row.clear();
+	}
+}
+
+BMP::BMP(vector<vector<double>>& picture) : BMP(picture, color_scheme) {}
 
 BMP::BMP(string filename) : BMP() {
 	ifstream in(filename, ios::binary | ios::in);
@@ -32,7 +61,7 @@ BMP::BMP(string filename) : BMP() {
 BMP::BMP(const BMP& obj){
 	pixels = obj.pixels;
 	count_RGB_channels = obj.count_RGB_channels;
-	color = obj.color;
+	color_scheme = obj.color_scheme;
 	size = obj.size;
 	bmpFileHeader = obj.bmpFileHeader;
 	bmpInfoHeader = obj.bmpInfoHeader;
@@ -43,7 +72,7 @@ BMP& BMP::operator=(const BMP& obj) {
 	if (this == &obj) return *this;
 	pixels = obj.pixels;
 	count_RGB_channels = obj.count_RGB_channels;
-	color = obj.color;
+	color_scheme = obj.color_scheme;
 	size = obj.size;
 	bmpFileHeader = obj.bmpFileHeader;
 	bmpInfoHeader = obj.bmpInfoHeader;
@@ -58,11 +87,11 @@ const unsigned char& BMP::operator()(int const row, int const column, scheme con
 unsigned char BMP::apply_scheme(vector<unsigned char> pixel, scheme color) {
 	switch (color) {
 	case scheme::gray: {
-		if (this->color == color || this->color == scheme::only_blue_channel) {
+		if (this->color_scheme == color || this->color_scheme == scheme::only_blue_channel) {
 			return pixel.at(0);
-		} else if (this->color == scheme::only_green_channel) {
+		} else if (this->color_scheme == scheme::only_green_channel) {
 			return pixel.at(1);
-		} else if (this->color == scheme::only_red_channel) {
+		} else if (this->color_scheme == scheme::only_red_channel) {
 			return pixel.at(2);
 		} else {
 			return static_cast<unsigned char>(0.11 * pixel.at(0) + 0.59 * pixel.at(1) + 0.3 * pixel.at(2));
@@ -84,7 +113,7 @@ unsigned char BMP::apply_scheme(vector<unsigned char> pixel, scheme color) {
 };
 
 unsigned char BMP::apply_scheme(vector<unsigned char> pixel) {
-	return apply_scheme(pixel, color);
+	return apply_scheme(pixel, color_scheme);
 }
 
 void BMP::initHeader() {
@@ -162,9 +191,9 @@ istream& operator>>(istream& input, BMP& bmp) {
 		}
 	}
 	if (bmp.count_RGB_channels == 1) {
-		bmp.color = scheme::gray;
+		bmp.color_scheme = scheme::gray;
 	} else if (isMonochromatic) {
-		bmp.color = etalon.get_color();
+		bmp.color_scheme = etalon.get_color();
 	}
 	reverse(bmp.pixels.begin(), bmp.pixels.end());
 	bmp.initHeader();
@@ -241,7 +270,7 @@ const image_size BMP::get_size() {
 }
 
 const scheme BMP::get_color(){
-	return color;
+	return color_scheme;
 }
 
 const int BMP::get_count_RGB_channels() {
@@ -257,7 +286,7 @@ vector<vector<vector<unsigned char>>>::iterator BMP::last_row() {
 }
 
 ostream& operator<<(ostream& out, BMP& bmp){
-	vector<unsigned char> data = bmp.serialize(bmp.color);
+	vector<unsigned char> data = bmp.serialize(bmp.color_scheme);
 	for (unsigned char value : data) {
 		out << value;
 	}
@@ -265,7 +294,7 @@ ostream& operator<<(ostream& out, BMP& bmp){
 }
 
 void BMP::write(string filename, scheme color) {
-	if (this->color != color) this->color = color;
+	if (this->color_scheme != color) this->color_scheme = color;
 	ofstream output(filename, ios::binary | ios::trunc | ios::out);
 	if (!output) throw runtime_error("Writing to " + filename + " file is not possible!");
 	output << *this;
@@ -273,5 +302,102 @@ void BMP::write(string filename, scheme color) {
 }
 
 void BMP::write(string filename) {
-	write(filename, this->color);
+	write(filename, this->color_scheme);
+}
+
+vector<unsigned char> BMP::form_pixel(unsigned char value) {
+	return form_pixel(value, color_scheme);
+}
+
+vector<unsigned char> BMP::form_pixel(unsigned char value, scheme color) {
+	vector<unsigned char> pixel;
+	switch (color) {
+	case scheme::zero: {
+		throw runtime_error("Reserved color name");
+	}
+	case scheme::gray: {
+		pixel.push_back(value);
+		break;
+	}
+	case scheme::only_blue_channel: {
+		pixel.push_back(value);
+		pixel.push_back(0);
+		pixel.push_back(0);
+		break;
+	}
+	case scheme::only_green_channel: {
+		pixel.push_back(0);
+		pixel.push_back(value);
+		pixel.push_back(0);
+		break;
+	}
+	case scheme::only_red_channel: {
+		pixel.push_back(0);
+		pixel.push_back(0);
+		pixel.push_back(value);
+		break;
+	}
+	case scheme::richred: {
+		pixel.push_back(value * value * value / (255 * 255));
+		pixel.push_back(value * value * value / (255 * 255));
+		pixel.push_back(value);
+		break;
+	}
+	case scheme::blueviolet: {
+		pixel.push_back(255 * exp(value / 255 - value * value / (255 * 255)));
+		pixel.push_back(value * value * value * value / (255 * 255 * 255));
+		pixel.push_back(value);
+		break;
+	}
+	default: {
+		unsigned char char_value = round(255 - value);
+		pixel.push_back(cmap.at(char_value).at(0));
+		pixel.push_back(cmap.at(char_value).at(1));
+		pixel.push_back(cmap.at(char_value).at(2));
+		break;
+	}
+	}
+	return pixel;
+}
+
+
+map<unsigned char, vector<unsigned char>>& BMP::get_cmap(scheme color_scheme, map<unsigned char, vector<unsigned char>>& cmap) {
+	string buf;
+	ifstream in("cmap/" + _to_string(color_scheme) + ".cmap", ios::in);
+	vector<unsigned char> buf_vector;
+	if (!in.fail()) {
+		for (int i = 0; i < 256; i++) {
+			buf_vector = vector<unsigned char>(3);
+			in >> buf;
+			buf_vector.at(2) = stod(buf);
+			in >> buf;
+			buf_vector.at(1) = stod(buf);
+			in >> buf;
+			buf_vector.at(0) = stod(buf);
+			cmap[i] = buf_vector;
+			buf_vector.clear();
+		}
+	}
+	else {
+		throw runtime_error("Файл " + _to_string(color_scheme) + ".cmap не найден!");
+	}
+	in.close();
+	return cmap;
+}
+
+string _to_string(scheme color) {
+	switch (color) {
+	case scheme::gray: return "gray";
+	case scheme::only_blue_channel: return "blue";
+	case scheme::only_red_channel: return "red";
+	case scheme::only_green_channel: return "green";
+	case scheme::dusk: return "dusk";
+	case scheme::dawn: return "dawn";
+	case scheme::fire: return "fire";
+	case scheme::seashore: return "seashore";
+	case scheme::kryptonite: return "kryptonite";
+	case scheme::teals: return "teals";
+	case scheme::rainbow: return "rainbow";
+	default: return "zero";
+	}
 }
