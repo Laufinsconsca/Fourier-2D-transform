@@ -11,6 +11,12 @@ BMP::BMP(scheme color) : BMP() {
 	this->color_scheme = color;
 }
 
+/**
+ *
+ * 
+ * \param picture
+ */
+
 BMP::BMP(vector<vector<vector<unsigned char>>>& picture) : pixels(picture) {
 	size.height = (int)picture.at(0).size();
 	size.width = (int)picture.size();

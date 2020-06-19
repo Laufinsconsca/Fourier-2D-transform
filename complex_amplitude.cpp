@@ -2,6 +2,7 @@
 #include "complex_amplitude.h"
 #include "vortex.h"
 #include <math.h>
+#include <functional>
 #include <algorithm>
 
 complex_amplitude::complex_amplitude() : color(scheme::gray), pixels(), count_RGB_channels(1) {}
@@ -95,10 +96,10 @@ complex_amplitude::complex_amplitude(vortex& vortex, image_size size, scheme col
 }
 
 void complex_amplitude::create_hole(vortex& vortex, double r) {
-	vortex.fi = vortex.fi*2*M_PI/360 + M_PI_2;
+	double fi = vortex.fi*2*M_PI/360 + M_PI_2;
 	double n = size.width;
-	double t_cos = (n + cos(vortex.fi) * vortex.r_d * n / r) / 2;
-	double t_sin = (n + sin(vortex.fi) * vortex.r_d * n / r) / 2;
+	double t_cos = (n + cos(fi) * vortex.r_d * n / r) / 2;
+	double t_sin = (n + sin(fi) * vortex.r_d * n / r) / 2;
 	for (int i = round(t_cos - vortex.r_hole * n / r); i < round(t_cos + vortex.r_hole * n / r); i++) {
 		for (int j = round(t_sin - vortex.r_hole * n / r); j < round(t_sin + vortex.r_hole * n / r); j++) {
 			if (pow(i - t_cos, 2) + pow(j - t_sin, 2) < pow(vortex.r_hole * n / r, 2)) {
@@ -190,23 +191,52 @@ void complex_amplitude::replace(vector<complex<double>>& vector, int number, dir
 	}
 }
 
+//double complex_amplitude::get_max(out_field_type type) {
+//	double t, max = -1;
+//	auto f = [=](complex<double> a) {
+//		switch (type) {
+//		case out_field_type::amplitude: {
+//			return std::abs(a);
+//		}
+//		case out_field_type::intensity: {
+//			return std::norm(a);
+//		}
+//		}
+//	};
+//	auto predicate = [=](complex<double> a, complex<double> b) {
+//		switch (type) {
+//			case out_field_type::amplitude: {
+//				return abs(a) < abs(b);
+//			}
+//			case out_field_type::intensity: {
+//				return std::norm(a) < std::norm(b);
+//			}
+//		}
+//	};
+//	for (vector<complex<double>> row : pixels) {
+//		double t = f(*max_element(row.begin(), row.end(), predicate));
+//		if (max < t) max = t;
+//	}
+//	return max;
+//}
+
 double complex_amplitude::get_max(out_field_type type) {
-	double max = -1.7976931348623157e+308;
+	double max = -1;
 	for (vector<complex<double>> row : pixels) {
 		for (complex<double> pixel : row) {
 			switch (type) {
-				case out_field_type::amplitude: {
-					if (max < abs(pixel)) {
-						max = abs(pixel);
-					}
-					break;
+			case out_field_type::amplitude: {
+				if (max < abs(pixel)) {
+					max = abs(pixel);
 				}
-				case out_field_type::intensity: {
-					if (max < abs(pixel) * abs(pixel)) {
-						max = abs(pixel) * abs(pixel);
-					}
-					break;
+				break;
+			}
+			case out_field_type::intensity: {
+				if (max < abs(pixel) * abs(pixel)) {
+					max = abs(pixel) * abs(pixel);
 				}
+				break;
+			}
 			}
 		}
 	}
