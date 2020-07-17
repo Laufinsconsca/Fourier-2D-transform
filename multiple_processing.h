@@ -10,7 +10,9 @@
 
 using namespace std;
 
-inline void multiple_processing() { // для множественного подсчёта преобразования Фурье от различных распределений
+
+/** Multiple processing (for multiple calculation of the Fourier transform from different distributions) */
+inline void multiple_processing() {
 image_size size(256, 256);
 string folder;
 char* temp = (char*)malloc(200);
@@ -18,14 +20,20 @@ string name;
 string temp_name;
 string c_fi;
 
-#define INTENSITY
-#define AMPLITUDE
-#define PHASE
+//#define INTENSITY
+//#define AMPLITUDE
+//#define PHASE
 //#define SIMILARITY
 #define OAM
 #define WITH_HOLES
 
 	// <constantDeclaration>
+	//------------------------------------------------------------------------------
+	// <colorScheme>
+	//--------------------------------------------------------------------------
+	scheme color_scheme = scheme::gray;
+	//--------------------------------------------------------------------------
+	// </colorScheme>
 	//------------------------------------------------------------------------------
 	// <inputDirectory>
 	//--------------------------------------------------------------------------
@@ -35,7 +43,7 @@ string c_fi;
 	//--------------------------------------------------------------------------
 	// <outputDirectory>
 	//--------------------------------------------------------------------------
-	string outputDirectory = "D:\\output_test";
+	string outputDirectory = "D:\\oam_dist";
 	//--------------------------------------------------------------------------
 	// </outputDirectory>
 	//--------------------------------------------------------------------------
@@ -51,13 +59,13 @@ string c_fi;
 	//--------------------------------------------------------------------------
 	// <increase>
 	//--------------------------------------------------------------------------
-	const long increase = 4l;
+	const int increase = 4;
 	//--------------------------------------------------------------------------
 	// </increase>
 	//--------------------------------------------------------------------------
 	// <topological charges>
 	//--------------------------------------------------------------------------
-	const int number_of_tp = 1;
+	const int number_of_tp = 2;
 	//--------------------------------------------------------------------------
 	// </topological charges>
 	//--------------------------------------------------------------------------
@@ -94,10 +102,10 @@ string c_fi;
 	// <topological charges>
 	//--------------------------------------------------------------------------
 	string c_tp_s[number_of_tp] = {
-		{"1"},
+		//{"1"},
 		//{"3"},
-		//{"5"},
-		//{"10"},
+		{"5"},
+		{"10"},
 		//{"r^0.5"},
 		//{"r"},
 		//{"r^1.5"},
@@ -132,10 +140,10 @@ string c_fi;
 	// <the power of fi>
 	//--------------------------------------------------------------------------
 	string c_pow_fi_s[number_of_pow_fi] = {
-		{"1"},
+		//{"1"},
 		//{"1.5"},
 		//{"2"},
-		//{"2.5"}
+		{"2.5"}
 	};
 	//--------------------------------------------------------------------------
 	// </the power of fi>
@@ -149,7 +157,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 		//------------------------------------------------------------------------------
 		// <zoom rule>
 		//------------------------------------------------------------------------------
-		int extension = pow_fi == 2 || pow_fi == 3 ? 4 : pow_fi == 1 ? 8 : 16;
+		int extension = 2;// pow_fi == 2 || pow_fi == 3 ? 4 : pow_fi == 1 ? 8 : 16;
 		//------------------------------------------------------------------------------
 		// </zoom rule>
 		//------------------------------------------------------------------------------
@@ -164,7 +172,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 		//<record reference intensity>
 		//------------------------------------------------------------------------------
 		#ifdef INTENSITY
-			IB_E.write(folder + c_intensity + temp_name, out_field_type::intensity, scheme::fire);
+			IB_E.write(folder + c_intensity + temp_name, out_field_type::intensity, color_scheme);
 		#endif
 		//------------------------------------------------------------------------------
 		//</record reference intensity>
@@ -174,7 +182,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 		//<record reference amplitude>
 		//------------------------------------------------------------------------------
 		#ifdef AMPLITUDE
-			IB_E.write(folder + c_amplitude + temp_name, out_field_type::amplitude, scheme::fire);
+			IB_E.write(folder + c_amplitude + temp_name, out_field_type::amplitude, color_scheme);
 		#endif
 		//------------------------------------------------------------------------------
 		//</record reference amplitude>
@@ -184,7 +192,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 		//<record reference phase>
 		//------------------------------------------------------------------------------
 		#ifdef PHASE
-			IB_E.write(folder + c_phase + temp_name, out_field_type::argument, scheme::fire);
+			IB_E.write(folder + c_phase + temp_name, out_field_type::argument, color_scheme);
 		#endif
 		//------------------------------------------------------------------------------
 		//</record reference phase>
@@ -194,8 +202,12 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 		//<record reference OAM>
 		//------------------------------------------------------------------------------
 		#ifdef OAM
-			BMP oam(scheme::fire);
-			oam.write(folder + c_oam + c_tp + ",pow_fi=" + c_pow_fi + ",OAM=" + to_string(IB_E.get_oam(oam)) + ".bmp");
+			BMP oam(color_scheme);
+			string oam_n = to_string(IB_E.get_oam(oam));
+			ofstream fout(folder + c_oam + c_tp + ",pow_fi=" + c_pow_fi + ".oam", ios::trunc);
+			fout << oam_n;
+			fout.close();
+			oam.write(folder + c_oam + c_tp + ",pow_fi=" + c_pow_fi + ",OAM=" + oam_n + ".bmp");
 		#endif
 		//------------------------------------------------------------------------------
 		//</record reference OAM>
@@ -227,7 +239,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 						//------------------------------------------------------------------------------
 						#ifdef INTENSITY
 							name = folder + c_intensity + temp_name;
-							IB.write(name, out_field_type::intensity, scheme::fire);
+							IB.write(name, out_field_type::intensity, color_scheme);
 						#endif
 						//------------------------------------------------------------------------------
 						//</record distorted intensity>
@@ -238,7 +250,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 						//------------------------------------------------------------------------------
 						#ifdef AMPLITUDE
 							name = folder + c_amplitude + temp_name;
-							IB.write(name, out_field_type::amplitude, scheme::fire);
+							IB.write(name, out_field_type::amplitude, color_scheme);
 						#endif
 						//------------------------------------------------------------------------------
 						//</record distorted amplitude>
@@ -249,7 +261,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 						//------------------------------------------------------------------------------
 						#ifdef PHASE
 							name = folder + c_phase + temp_name;
-							IB.write(name, out_field_type::argument, scheme::fire);
+							IB.write(name, out_field_type::argument, color_scheme);
 						#endif
 						//------------------------------------------------------------------------------
 						//</record distorted phase>
@@ -271,8 +283,12 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 						//<record distorted OAM>
 						//------------------------------------------------------------------------------
 						#ifdef OAM
-							BMP oam(scheme::fire);
-							oam.write(folder + c_oam + c_tp + ",pow_fi=" + c_pow_fi + ",r_d=" + c_r_d + ",r_hole=" + c_r_hole + ",fi=" + c_fi + ",OAM=" + to_string(IB.get_oam(oam)) + ".bmp");
+							BMP oam(color_scheme);
+							string oam_n = to_string(IB.get_oam(oam));
+							ofstream fout(folder + c_oam + c_tp + ",pow_fi=" + c_pow_fi + ",r_d=" + c_r_d + ",r_hole=" + c_r_hole + ",fi=" + c_fi + ".oam", ios::trunc);
+							fout << oam_n;
+							fout.close();
+							oam.write(folder + c_oam + c_tp + ",pow_fi=" + c_pow_fi + ",r_d=" + c_r_d + ",r_hole=" + c_r_hole + ",fi=" + c_fi + ",OAM=" + oam_n + ".bmp");
 						#endif
 						//------------------------------------------------------------------------------
 						//</record distorted OAM>

@@ -113,7 +113,7 @@ unsigned char BMP::apply_scheme(vector<unsigned char> pixel, scheme color) {
 		return pixel.at(2);
 	}
 	default: {
-		throw runtime_error("Incorrect color name");
+		return static_cast<unsigned char>(0.11 * pixel.at(0) + 0.59 * pixel.at(1) + 0.3 * pixel.at(2));
 	}
 	}
 };
@@ -208,11 +208,11 @@ istream& operator>>(istream& input, BMP& bmp) {
 
 vector<unsigned char> BMP::serialize(scheme color_scheme)
 {
-	if (color_scheme == scheme::gray) {
-		bmpFileHeader.at(1).at(0) = size.width * size.height*3 + BMPFILEHEADERsize + BMPINFOHEADERsize + COLORPROFILEsize;
-		bmpInfoHeader.at(4).at(0) = 24;
-		count_RGB_channels = 3;
-	}
+	//if (color_scheme == scheme::gray) {
+	//	bmpFileHeader.at(1).at(0) = size.width * size.height*3 + BMPFILEHEADERsize + BMPINFOHEADERsize + COLORPROFILEsize;
+	//	bmpInfoHeader.at(4).at(0) = 24;
+	//	count_RGB_channels = 3;
+	//}
 	vector<unsigned char> serializedBMP;
 	serializedBMP.reserve(bmpFileHeader.at(1).at(0));
 	for (vector<int> data : bmpFileHeader) {
@@ -340,18 +340,6 @@ vector<unsigned char> BMP::form_pixel(unsigned char value, scheme color) {
 	case scheme::only_red_channel: {
 		pixel.push_back(0);
 		pixel.push_back(0);
-		pixel.push_back(value);
-		break;
-	}
-	case scheme::richred: {
-		pixel.push_back(value * value * value / (255 * 255));
-		pixel.push_back(value * value * value / (255 * 255));
-		pixel.push_back(value);
-		break;
-	}
-	case scheme::blueviolet: {
-		pixel.push_back(255 * exp(value / 255 - value * value / (255 * 255)));
-		pixel.push_back(value * value * value * value / (255 * 255 * 255));
 		pixel.push_back(value);
 		break;
 	}

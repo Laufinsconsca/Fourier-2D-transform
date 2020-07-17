@@ -1,3 +1,9 @@
+/**********************************************************************************************//**
+ * @file	bmpTest\complex_amplitude.cpp.
+ *
+ * Implements the complex amplitude class.
+ **************************************************************************************************/
+
 #define _USE_MATH_DEFINES
 #include "complex_amplitude.h"
 #include "vortex.h"
@@ -5,18 +11,33 @@
 #include <functional>
 #include <algorithm>
 
-complex_amplitude::complex_amplitude() : color(scheme::gray), pixels(), count_RGB_channels(1) {}
+/** Default constructor. */
+complex_amplitude::complex_amplitude() : pixels() {}
 
-complex_amplitude::complex_amplitude(const complex_amplitude& obj) : size(obj.size), color(obj.color), pixels(obj.pixels), count_RGB_channels(obj.count_RGB_channels) {}
+/**********************************************************************************************//**
+ * Copy constructor.
+ *
+ * @parameters	obj	The object.
+ **************************************************************************************************/
 
-complex_amplitude::complex_amplitude(BMP& amplitudeBMP, BMP& phaseBMP) : count_RGB_channels(phaseBMP.get_count_RGB_channels()) {
+complex_amplitude::complex_amplitude(const complex_amplitude& obj) : size(obj.size), pixels(obj.pixels) {}
+
+/**********************************************************************************************//**
+ * Constructor.
+ *
+ * @exceptions	runtime_error	Raised when a amplitude image size is inconsistent with phase image size
+ *
+ * @parameters	amplitudeBMP	[in,out] The amplitude bitmap.
+ * @parameters	phaseBMP		[in,out] The phase bitmap.
+ **************************************************************************************************/
+
+complex_amplitude::complex_amplitude(BMP& amplitudeBMP, BMP& phaseBMP) {
 	image_size amplitude_size = amplitudeBMP.get_size();
 	image_size phase_size = phaseBMP.get_size();
 	if (amplitude_size != phase_size) {
 		throw runtime_error("Inconsistent sizes");
 	}
 	size = amplitude_size;
-	color = set_color(amplitudeBMP, phaseBMP, out_field_type::amplitude);
 	double amplitude, phase;
 	int i = 0, j = 0, x, y;
 	vector<vector<vector<unsigned char>>>::iterator amplitude_row = amplitudeBMP.first_row();
@@ -49,9 +70,15 @@ complex_amplitude::complex_amplitude(BMP& amplitudeBMP, BMP& phaseBMP) : count_R
 	}
 }
 
-complex_amplitude::complex_amplitude(vortex& vortex, image_size size, scheme color) {
-	this->color = color;
-	this->count_RGB_channels = 4;
+/**********************************************************************************************//**
+ * Constructor.
+ *
+ * @parameters	vortex	[in,out] The vortex.
+ * @parameters	size  	The size.
+ * @parameters	color 	The color scheme.
+ **************************************************************************************************/
+
+complex_amplitude::complex_amplitude(vortex& vortex, image_size size) {
 	this->size = size;
 	double r = 5;
 	init_gauss(r, 3);
@@ -83,7 +110,7 @@ complex_amplitude::complex_amplitude(vortex& vortex, image_size size, scheme col
 			if (sqrt(pow(x_n.at(j), 2) + pow(y_n.at(i), 2)) < size.width / 2) {
 				double angle = atan2(-y_r.at(i), x_r.at(j));
 				double t = vortex.tp(sqrt(x_r.at(round(j)) * x_r.at(round(j)) + y_r.at(round(i)) * y_r.at(round(i))));
-				row.push_back(polar(gauss.at(i).at(j), t * (angle > 0 ? pow(angle, vortex.pow_fi) : pow(angle + 2 * M_PI, vortex.pow_fi))));
+				row.push_back(polar(ref_beam.at(i).at(j), t * (angle > 0 ? pow(angle, vortex.pow_fi) : pow(angle + 2 * M_PI, vortex.pow_fi))));
 			}
 			else {
 				row.push_back(0);
@@ -94,6 +121,13 @@ complex_amplitude::complex_amplitude(vortex& vortex, image_size size, scheme col
 	}
 	create_hole(vortex, r);
 }
+
+/**********************************************************************************************//**
+ * Creates a hole.
+ *
+ * @parameters	vortex	[in,out] The vortex.
+ * @parameters	r	  	The relative width of an image (by default r = 5).
+ **************************************************************************************************/
 
 void complex_amplitude::create_hole(vortex& vortex, double r) {
 	double fi = vortex.fi*2*M_PI/360 + M_PI_2;
@@ -109,37 +143,69 @@ void complex_amplitude::create_hole(vortex& vortex, double r) {
 	}
 }
 
+/**********************************************************************************************//**
+ * Initializes the gauss.
+ *
+ * @parameters	r	 	The relative width of an image (by default r = 5).
+ * @parameters	sigma	The sigma.
+ **************************************************************************************************/
+
 void complex_amplitude::init_gauss(double r, double sigma) {
-	gauss.clear();
+	ref_beam.clear();
 	double hx, hy, x, y;
 	hx = 2 * r / size.width;
 	hy = 2 * r / size.height;
-	gauss.reserve(size.height);
+	ref_beam.reserve(size.height);
 	for (int i = 0; i < size.height; i++) {
 		y = -r + i * hy;
-		gauss.push_back(vector<double>());
-		gauss.at(i).reserve(size.width);
+		ref_beam.push_back(vector<double>());
+		ref_beam.at(i).reserve(size.width);
 		for (int j = 0; j < size.width; j++) {
 			x = -r + j * hx;
-			gauss.at(i).push_back((exp(-(x * x + y * y) / (2 * sigma * sigma))));
+			ref_beam.at(i).push_back((exp(-(x * x + y * y) / (2 * sigma * sigma))));
 		}
 	}
 }
 
+/**********************************************************************************************//**
+ * Assignment operator.
+ *
+ * @parameters	obj	The object.
+ *
+ * @returns	A shallow copy of this object.
+ **************************************************************************************************/
+
 complex_amplitude& complex_amplitude::operator=(const complex_amplitude& obj){
 	if (this == &obj) return *this;
 	size = obj.size;
-	color = obj.color;
-	count_RGB_channels = obj.count_RGB_channels;
 	vector<vector<complex<double>>> pixels(obj.pixels);
 	return *this;
 }
+
+/**********************************************************************************************//**
+ * Function call operator.
+ *
+ * @parameters	row   	The row.
+ * @parameters	column	The column.
+ *
+ * @returns	The pixel at given location
+ **************************************************************************************************/
 
 complex<double>& complex_amplitude::operator()(int row, int column){
 	return this->pixels.at(row).at(column);
 }
 
-vector<complex<double>>& complex_amplitude::operator()(int& number, direction direction, vector<complex<double>>& temp_vector) {
+/**********************************************************************************************//**
+ * Function call operator.
+ *
+ * @parameters	number   	[in,out] Number of row/column).
+ * @parameters	direction	The direction (row or column).
+ *
+ * @returns	The vector of the pixel as given row/columm
+ **************************************************************************************************/
+
+vector<complex<double>>& complex_amplitude::operator()(int& number, direction direction) {
+	static vector<complex<double>> temp_vector;
 	switch (direction) {
 		case row: {
 			for (int i = 0; i < size.width; i++) {
@@ -157,15 +223,15 @@ vector<complex<double>>& complex_amplitude::operator()(int& number, direction di
 	}
 }
 
-scheme complex_amplitude::set_color(BMP& amplitudeBMP, BMP& phaseBMP, out_field_type output_color_of) {
-	BMP& etalon = output_color_of == out_field_type::amplitude ? amplitudeBMP : phaseBMP;
-	if (etalon.get_color() != scheme::color) {
-		return etalon.get_color();
-	}
-	else {
-		return scheme::gray;
-	}
-}
+/**********************************************************************************************//**
+ * Replaces.
+ *
+ * @exceptions	runtime_error	Raised when given pixels vector is inconsitent with the pixels vector at given location.
+ *
+ * @parameters	vector   	[in,out] The replacing vector.
+ * @parameters	number   	Number of the row/column where the replaced vector is located.
+ * @parameters	direction	The direction (row or column).
+ **************************************************************************************************/
 
 void complex_amplitude::replace(vector<complex<double>>& vector, int number, direction direction) {
 	switch (direction) {
@@ -220,6 +286,14 @@ void complex_amplitude::replace(vector<complex<double>>& vector, int number, dir
 //	return max;
 //}
 
+/**********************************************************************************************//**
+ * Finds the max of the whole complex amplitude normalized to given field type.
+ *
+ * @parameters	type	[out] The out field type.
+ *
+ * @returns	The calculated maximum.
+ **************************************************************************************************/
+
 double complex_amplitude::get_max(out_field_type type) {
 	double max = -1;
 	for (vector<complex<double>> row : pixels) {
@@ -237,11 +311,20 @@ double complex_amplitude::get_max(out_field_type type) {
 				}
 				break;
 			}
+			case out_field_type::argument: {
+				return 2*M_PI;
+			}
 			}
 		}
 	}
 	return max;
 }
+
+/**********************************************************************************************//**
+ * Normalizes the whole complex amplitude in relation to the given type.
+ *
+ * @parameters	type	[out] The out field type.
+ **************************************************************************************************/
 
 void complex_amplitude::norm(out_field_type type) {
 	double max = get_max(type);
@@ -252,8 +335,20 @@ void complex_amplitude::norm(out_field_type type) {
 	}
 }
 
-vector<vector<complex<double>>>& complex_amplitude::gradient(vector<vector<complex<double>>>& grad, char var) {
-	grad.clear();
+/**********************************************************************************************//**
+ * Gradients.
+ * 
+ * @parameters	var 	The variable symbol that indicates direction ('x' or 'y').
+ *
+ * @exceptions	runtime_error	Raised when a runtime error condition occurs.
+ *
+ * @parameters	var	The variable.
+ *
+ * @returns	A reference to a vector that contain the gradient in the chosen direction.
+ **************************************************************************************************/
+
+vector<vector<complex<double>>>& complex_amplitude::gradient(char var) {
+	static vector<vector<complex<double>>> grad;
 	switch (var) {
 	case 'x': {
 		grad.reserve(size.height);
@@ -296,12 +391,20 @@ vector<vector<complex<double>>>& complex_amplitude::gradient(vector<vector<compl
 	return grad;
 }
 
-double complex_amplitude::get_oam(BMP& oam, scheme color_scheme)  {
+/**********************************************************************************************//**
+ * Gets the OAM.
+ *
+ * @parameters	oam	[in,out] A reference to the bitmap that will contain the OAM density distribution of this complex amplitude.
+ *
+ * @returns	The total OAM.
+ **************************************************************************************************/
+
+double complex_amplitude::get_oam(BMP& oam)  {
 	vector<vector<double>> pixels;
 	pixels.reserve(size.height);
 	vector<vector<complex<double>>> gx, gy;
-	gx = gradient(gx, 'x');
-	gy = gradient(gy, 'y');
+	gx = gradient('x');
+	gy = gradient('y');
 	for (int i = 0; i < size.height; i++) {
 		vector<double> row;
 		row.reserve(size.width);
@@ -331,27 +434,25 @@ double complex_amplitude::get_oam(BMP& oam, scheme color_scheme)  {
 			pixels.at(i).at(j) *= 255/max;
 		}
 	}
-	BMP oam_(pixels, color_scheme);
+	BMP oam_(pixels, oam.get_color());
 	oam = oam_;
+
 	return oam_numerator / oam_denominator;
 }
 
-double complex_amplitude::get_oam(BMP& oam) {
-	return get_oam(oam, oam.get_color());
-}
+/**********************************************************************************************//**
+ * Writes this object to a given location on the computer.
+ *
+ * @parameters	filename	Filename of the file.
+ * @parameters	type		[out] The out field type.
+ * @parameters	color   	the color scheme that the generated bitmap will have.
+ **************************************************************************************************/
 
 void complex_amplitude::write(string filename, out_field_type type, scheme color) {
 	double max = 0;
 	double output_value;
-	this->color = color;
 	if (type == out_field_type::amplitude || type == out_field_type::intensity) {
 		max = get_max(type);
-	}
-	else if (type == out_field_type::argument) {
-		max = 2 * M_PI;
-	}
-	else {
-		throw runtime_error("Incorrect type");
 	}
 	vector<vector<double>> output_pixels;
 	output_pixels.reserve(size.height);
@@ -375,21 +476,14 @@ void complex_amplitude::write(string filename, out_field_type type, scheme color
 	output.write(filename);
 }
 
-void complex_amplitude::write(string filename, out_field_type type) {
-	write(filename, type, this->color);
-}
-
-void complex_amplitude::add_channels(vector<unsigned char>& pixel, int count_RGB_channels) {
-	if (pixel.size() == 1 && count_RGB_channels == 3) {
-		pixel.push_back(pixel.at(0));
-		pixel.push_back(pixel.at(0));
-	}
-	if (pixel.size() == 3 && count_RGB_channels > 3) {
-		for (int i = 3; i < count_RGB_channels; i++) {
-			pixel.push_back(0);
-		}
-	}
-}
+/**********************************************************************************************//**
+ * 2-dimension fast Fourier transform.
+ *
+ * @exceptions	runtime_error	Raised when the size of this object is not power of 2.
+ *
+ * @parameters	dir		 	The direction of the transform (1 for direct, -1 for inverse).
+ * @parameters	expansion	The expansion (should be power of 2 as well).
+ **************************************************************************************************/
 
 void complex_amplitude::_FFT2D(int dir, int expansion) {
 	if (is_power_of_2(size)) {
@@ -443,13 +537,36 @@ void complex_amplitude::_FFT2D(int dir, int expansion) {
 	}
 }
 
+/**********************************************************************************************//**
+ * 2-dimension direct fast Fourier transform.
+ *
+ * @parameters	expansion	The expansion (should be power of 2, allows you to increase an output Fourier transform image).
+ **************************************************************************************************/
+
 void complex_amplitude::FFT2D(int expansion) {
 	_FFT2D(1, expansion);
 }
 
+/**********************************************************************************************//**
+ * 2-dimension inverve fast Fourier transform.
+ *
+ * @parameters	expansion	The expansion (should be power of 2, allows you to increase an output Fourier transform image).
+ **************************************************************************************************/
+
 void complex_amplitude::IFFT2D(int expansion) {
 	_FFT2D(-1, expansion);
 }
+
+/**********************************************************************************************//**
+ * Fresnel tranform.
+ *
+ * @parameters	rx		  	The rx.
+ * @parameters	ry		  	The ry.
+ * @parameters	distance  	The distance.
+ * @parameters	wavelength	The wavelength.
+ * @parameters	expansion 	The expansion (should be power of 2, allows you to increase an output Fourier transform image).
+ * @parameters	direction 	The direction of the transform (1 for direct, -1 for inverse).
+ **************************************************************************************************/
 
 void complex_amplitude::FresnelT(double rx, double ry, double distance, double wavelength, int expansion, int direction) {
 	int i, j;
@@ -478,6 +595,18 @@ void complex_amplitude::FresnelT(double rx, double ry, double distance, double w
 //		FresnelT(rx, ry, size * 100 - distance, wavelength, -1, expansion);
 //	}
 //}
+
+/**********************************************************************************************//**
+ * 1-dimension fast Fourier transform.
+ *
+ * @exceptions	runtime_error	Raised when the size of this object is not power of 2.
+ *
+ * @parameters	dir				   	The direction of the transform (1 for direct, -1 for inverse).
+ * @parameters	size			   	The size.
+ * @parameters	transforming_vector	[in,out] The transforming vector.
+ *
+ * @returns	A reference to a transforming vector.
+ **************************************************************************************************/
 
 vector<complex<double>>& complex_amplitude::FFT1D(int dir, int size, vector<complex<double>>& transforming_vector) {
 	int i, k, m = 0;
@@ -525,6 +654,13 @@ vector<complex<double>>& complex_amplitude::FFT1D(int dir, int size, vector<comp
 	return transforming_vector;
 }
 
+/**********************************************************************************************//**
+ * Circular shifts (isn't used, but used in the another Fourier transform algorithm that isn't presented in this version).
+ *
+ * @parameters	xshift	The xshift.
+ * @parameters	yshift	The yshift.
+ **************************************************************************************************/
+
 void complex_amplitude::circshift(int xshift, int yshift) {
 	vector<vector<complex<double>>> circshifted_pixel;
 	for (int i = 0; i < size.width; i++) {
@@ -546,10 +682,12 @@ void complex_amplitude::circshift(int xshift, int yshift) {
 	pixels = circshifted_pixel;
 }
 
+/** Shifts for direct Fourier transform (isn't used, but used in the another Fourier transform algorithm that isn't presented in this version). */
 void complex_amplitude::fftshift() {
 	circshift(size.width/2, size.height/2);
 }
 
+/** Shifts for inverse Fourier transform (isn't used, but used in the another Fourier transform algorithm that isn't presented in this version). */
 void complex_amplitude::ifftshift() {
 	circshift((size.width + 1) / 2, (size.height + 1) / 2);
 }
