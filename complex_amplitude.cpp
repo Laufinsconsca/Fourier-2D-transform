@@ -321,6 +321,41 @@ double complex_amplitude::get_max(out_field_type type) {
 }
 
 /**********************************************************************************************//**
+ * Finds the min of the whole complex amplitude normalized to given field type.
+ *
+ * @parameters	type	[out] The out field type.
+ *
+ * @returns	The calculated minimum.
+ **************************************************************************************************/
+
+double complex_amplitude::get_min(out_field_type type) {
+	double min = 1e308;
+	for (vector<complex<double>> row : pixels) {
+		for (complex<double> pixel : row) {
+			switch (type) {
+			case out_field_type::amplitude: {
+				if (min > abs(pixel)) {
+					min = abs(pixel);
+				}
+				break;
+			}
+			case out_field_type::intensity: {
+				if (min > abs(pixel) * abs(pixel)) {
+					min = abs(pixel) * abs(pixel);
+				}
+				break;
+			}
+			case out_field_type::argument: {
+				return 0;
+			}
+			}
+		}
+	}
+	return min;
+}
+
+
+/**********************************************************************************************//**
  * Normalizes the whole complex amplitude in relation to the given type.
  *
  * @parameters	type	[out] The out field type.
@@ -335,20 +370,19 @@ void complex_amplitude::norm(out_field_type type) {
 	}
 }
 
-/**********************************************************************************************//**
- * Gradients.
+/***************************************************************************************************
+ * Get gradient of this for given variable.
  * 
  * @parameters	var 	The variable symbol that indicates direction ('x' or 'y').
+ * @parameters  grad    A reference to a vector that will contain the gradient in the chosen direction.
+ * 				
+ * @exception	runtime_error	Raised when variable is undefined (isn't 'x' or 'y').
  *
- * @exceptions	runtime_error	Raised when a runtime error condition occurs.
- *
- * @parameters	var	The variable.
- *
- * @returns	A reference to a vector that contain the gradient in the chosen direction.
+ * @returns	A reference to a vector that contains the gradient in the chosen direction.
  **************************************************************************************************/
 
-vector<vector<complex<double>>>& complex_amplitude::gradient(char var) {
-	static vector<vector<complex<double>>> grad;
+vector<vector<complex<double>>>& complex_amplitude::gradient(char var, vector<vector<complex<double>>>& grad) {
+	grad.clear();
 	switch (var) {
 	case 'x': {
 		grad.reserve(size.height);
@@ -391,20 +425,23 @@ vector<vector<complex<double>>>& complex_amplitude::gradient(char var) {
 	return grad;
 }
 
-/**********************************************************************************************//**
+/**************************************************************************************************
  * Gets the OAM.
+ * 
+ * @parameters	oam	[in,out] A reference to the bitmap that will contain the OAM density
+ * distribution of this complex amplitude.
  *
- * @parameters	oam	[in,out] A reference to the bitmap that will contain the OAM density distribution of this complex amplitude.
+ * @param [in,out]	oam	The oam.
  *
- * @returns	The total OAM.
+ * @returns	The array, that contain total OAM, minimum of the OAM density image and maximum of the OAM density image (for taking possibility of negativity of the pixels of the OAM density into account).
  **************************************************************************************************/
 
-double complex_amplitude::get_oam(BMP& oam)  {
+double* complex_amplitude::get_oam(BMP& oam)  {
 	vector<vector<double>> pixels;
 	pixels.reserve(size.height);
 	vector<vector<complex<double>>> gx, gy;
-	gx = gradient('x');
-	gy = gradient('y');
+	gx = gradient('x', gx);
+	gy = gradient('y', gy);
 	for (int i = 0; i < size.height; i++) {
 		vector<double> row;
 		row.reserve(size.width);
@@ -434,10 +471,35 @@ double complex_amplitude::get_oam(BMP& oam)  {
 			pixels.at(i).at(j) *= 255/max;
 		}
 	}
+	double min = 1e308;
+	max = 0;
+	for (vector<double> source_row : pixels) {
+		for (double pixel : source_row) {
+			if (min > pixel) {
+				min = pixel;
+			}
+		}
+	}
+	for (int i = 0; i < pixels.size(); i++) {
+		for (int j = 0; j < pixels.at(0).size(); j++) {
+			pixels.at(i).at(j) -= min;
+		}
+	}
+	for (vector<double> source_row : pixels) {
+		for (double pixel : source_row) {
+			if (max < pixel) {
+				max = pixel;
+			}
+		}
+	}
+	for (int i = 0; i < pixels.size(); i++) {
+		for (int j = 0; j < pixels.at(0).size(); j++) {
+			pixels.at(i).at(j) *= 255 / max;
+		}
+	}
 	BMP oam_(pixels, oam.get_color());
 	oam = oam_;
-
-	return oam_numerator / oam_denominator;
+	return new double[3] {oam_numerator / oam_denominator, min, max + min};
 }
 
 /**********************************************************************************************//**
@@ -540,7 +602,7 @@ void complex_amplitude::_FFT2D(int dir, int expansion) {
 /**********************************************************************************************//**
  * 2-dimension direct fast Fourier transform.
  *
- * @parameters	expansion	The expansion (should be power of 2, allows you to increase an output Fourier transform image).
+ * @parameters	expansion	The expansion (should be power of 2, allows you to increase an output Fresnel transform image).
  **************************************************************************************************/
 
 void complex_amplitude::FFT2D(int expansion) {

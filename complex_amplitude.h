@@ -54,10 +54,11 @@ public:
 	void write(string filename, out_field_type type, scheme color);
 	void replace(vector<complex<double>>& vector, int number, direction direction);
 	double get_max(out_field_type type);
+	double get_min(out_field_type type);
 	void norm(out_field_type type);
 
-	vector<vector<complex<double>>>& gradient(char var);
-	double get_oam(BMP& oam);
+	vector<vector<complex<double>>>& gradient(char var, vector<vector<complex<double>>>& grad);
+	double* get_oam(BMP& oam);
 	void create_hole(vortex& vortex, double r);
 	void init_gauss(double r, double sigma);
 

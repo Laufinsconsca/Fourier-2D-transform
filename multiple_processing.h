@@ -10,7 +10,6 @@
 
 using namespace std;
 
-
 /** Multiple processing (for multiple calculation of the Fourier transform from different distributions) */
 inline void multiple_processing() {
 image_size size(256, 256);
@@ -203,7 +202,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 		//------------------------------------------------------------------------------
 		#ifdef OAM
 			BMP oam(color_scheme);
-			string oam_n = to_string(IB_E.get_oam(oam));
+			string oam_n = to_string(IB_E.get_oam(oam)[0]);
 			ofstream fout(folder + c_oam + c_tp + ",pow_fi=" + c_pow_fi + ".oam", ios::trunc);
 			fout << oam_n;
 			fout.close();
@@ -284,7 +283,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 						//------------------------------------------------------------------------------
 						#ifdef OAM
 							BMP oam(color_scheme);
-							string oam_n = to_string(IB.get_oam(oam));
+							string oam_n = to_string(IB.get_oam(oam)[0]);
 							ofstream fout(folder + c_oam + c_tp + ",pow_fi=" + c_pow_fi + ",r_d=" + c_r_d + ",r_hole=" + c_r_hole + ",fi=" + c_fi + ".oam", ios::trunc);
 							fout << oam_n;
 							fout.close();

@@ -29,7 +29,7 @@ BMP::BMP(vector<vector<vector<unsigned char>>>& picture, scheme color) : BMP(pic
 }
 
 BMP::BMP(vector<vector<double>>& picture, scheme color_scheme) {
-	count_RGB_channels = 3;
+	count_RGB_channels = 4;
 	this->color_scheme = color_scheme;
 	size.height = (int)picture.at(0).size();
 	size.width = (int)picture.size();
@@ -38,12 +38,12 @@ BMP::BMP(vector<vector<double>>& picture, scheme color_scheme) {
 	if (!scheme_is_trivial) {
 		cmap = get_cmap(color_scheme, cmap);
 	}
-	pixels.reserve(size.height);
+	pixels.reserve(size.height*size.width*4);
+	vector<vector<unsigned char>> dest_row;
 	for (vector<double> source_row : picture) {
-		vector<vector<unsigned char>> dest_row;
-		dest_row.reserve(size.width);
+		dest_row.reserve(size.width*4);
 		for (double pixel : source_row) {
-			dest_row.push_back(form_pixel(pixel < 0 ? 0 : round(pixel)));
+			dest_row.push_back(form_pixel(round(pixel)));
 		}
 		pixels.push_back(dest_row);
 		dest_row.clear();
@@ -167,7 +167,8 @@ istream& operator>>(istream& input, BMP& bmp) {
 		if (!(input >> buf)) return input;
 		buf_vector.push_back(buf);
 	}
-	bmp.count_RGB_channels = bmp.toNumber(buf_vector) / 8;
+	bmp.count_RGB_channels = 4;
+	int count_RGB_channel = bmp.toNumber(buf_vector) / 8;
 	buf_vector.clear();
 	input.seekg(long long(offset) - 30, input.cur);
 	/*</header reading>*/
@@ -181,9 +182,12 @@ istream& operator>>(istream& input, BMP& bmp) {
 		for (int j = 0; j < bmp.size.width; j++) {
 			vector<unsigned char> pixel;
 			pixel.reserve(bmp.count_RGB_channels);
-			for (int k = 0; k < bmp.count_RGB_channels; k++) {
+			for (int k = 0; k < count_RGB_channel; k++) {
 				if (!(input >> buf)) return input;
 				pixel.push_back(buf);
+			}
+			for (int k = count_RGB_channel; k < 4; k++) {
+				pixel.push_back(255);
 			}
 			if (bmp.count_RGB_channels != 1) {
 				if (i == 0 && j == 0) {
@@ -208,11 +212,6 @@ istream& operator>>(istream& input, BMP& bmp) {
 
 vector<unsigned char> BMP::serialize(scheme color_scheme)
 {
-	//if (color_scheme == scheme::gray) {
-	//	bmpFileHeader.at(1).at(0) = size.width * size.height*3 + BMPFILEHEADERsize + BMPINFOHEADERsize + COLORPROFILEsize;
-	//	bmpInfoHeader.at(4).at(0) = 24;
-	//	count_RGB_channels = 3;
-	//}
 	vector<unsigned char> serializedBMP;
 	serializedBMP.reserve(bmpFileHeader.at(1).at(0));
 	for (vector<int> data : bmpFileHeader) {
@@ -249,22 +248,17 @@ vector<unsigned char> BMP::serialize(scheme color_scheme)
 				serializedBMP.push_back(0);
 				serializedBMP.push_back(pixel.at(2));
 				break;
-			case scheme::gray:
-				monochromatic_pixel = apply_scheme(pixel, color_scheme);
-				for (int i = 0; i < 3; i++) {
-					serializedBMP.push_back(monochromatic_pixel);
-				}
-				break;
+			//case scheme::gray:
+			//	monochromatic_pixel = apply_scheme(pixel, color_scheme);
+			//	for (int i = 0; i < 3; i++) {
+			//		serializedBMP.push_back(monochromatic_pixel);
+			//	}
+			//	break;
 			default: {
-				for (int i = 0; i < 3; i++) {
+				for (int i = 0; i < count_RGB_channels; i++) {
 					serializedBMP.push_back(pixel.at(i));
 				}
 			}
-			}
-			if (count_RGB_channels > 3) {
-				for (int i = 3; i < count_RGB_channels; i++) {
-					serializedBMP.push_back(pixel.at(i));
-				}
 			}
 		}
 	});
@@ -323,6 +317,8 @@ vector<unsigned char> BMP::form_pixel(unsigned char value, scheme color) {
 	}
 	case scheme::gray: {
 		pixel.push_back(value);
+		pixel.push_back(value);
+		pixel.push_back(value);
 		break;
 	}
 	case scheme::only_blue_channel: {
@@ -351,6 +347,7 @@ vector<unsigned char> BMP::form_pixel(unsigned char value, scheme color) {
 		break;
 	}
 	}
+	pixel.push_back(255); //for alpha channel;
 	return pixel;
 }
 
