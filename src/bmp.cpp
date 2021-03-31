@@ -182,11 +182,19 @@ istream& operator>>(istream& input, BMP& bmp) {
 		for (int j = 0; j < bmp.size.width; j++) {
 			vector<unsigned char> pixel;
 			pixel.reserve(bmp.count_RGB_channels);
-			for (int k = 0; k < count_RGB_channel; k++) {
+			if (count_RGB_channel >= 3) {
+				for (int k = 0; k < 3; k++) {
+					if (!(input >> buf)) return input;
+					pixel.push_back(buf);
+				} 
+				if (count_RGB_channel == 3) {
+					pixel.push_back(255);
+				}
+			} else if (count_RGB_channel == 1) {
 				if (!(input >> buf)) return input;
 				pixel.push_back(buf);
-			}
-			for (int k = count_RGB_channel; k < 4; k++) {
+				pixel.push_back(buf);
+				pixel.push_back(buf);
 				pixel.push_back(255);
 			}
 			if (bmp.count_RGB_channels != 1) {
@@ -354,7 +362,7 @@ vector<unsigned char> BMP::form_pixel(unsigned char value, scheme color) {
 
 map<unsigned char, vector<unsigned char>>& BMP::get_cmap(scheme color_scheme, map<unsigned char, vector<unsigned char>>& cmap) {
 	string buf;
-	ifstream in("cmap/" + _to_string(color_scheme) + ".cmap", ios::in);
+	ifstream in("src\\cmap\\" + _to_string(color_scheme) + ".cmap", ios::in);
 	vector<unsigned char> buf_vector;
 	if (!in.fail()) {
 		for (int i = 0; i < 256; i++) {

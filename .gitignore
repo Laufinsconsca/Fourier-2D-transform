@@ -1,0 +1,12 @@
+/Debug/
+/.vs/
+/x64/
+*.json
+*.bmp
+*.aps
+*.rc
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+resource.h

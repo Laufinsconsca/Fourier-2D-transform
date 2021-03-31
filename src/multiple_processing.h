@@ -19,9 +19,9 @@ string name;
 string temp_name;
 string c_fi;
 
-//#define INTENSITY
-//#define AMPLITUDE
-//#define PHASE
+#define INTENSITY
+#define AMPLITUDE
+#define PHASE
 //#define SIMILARITY
 #define OAM
 #define WITH_HOLES
@@ -30,19 +30,22 @@ string c_fi;
 	//------------------------------------------------------------------------------
 	// <colorScheme>
 	//--------------------------------------------------------------------------
-	scheme color_scheme = scheme::gray;
+	scheme amplitude_color_scheme = scheme::fire;
+	scheme phase_color_scheme = scheme::rainbow;
+	scheme intensity_color_scheme = scheme::fire;
+	scheme oam_color_scheme = scheme::fire;
 	//--------------------------------------------------------------------------
 	// </colorScheme>
 	//------------------------------------------------------------------------------
 	// <inputDirectory>
 	//--------------------------------------------------------------------------
-	string inputDirectory = "D:\\input";
+	string inputDirectory = "L:\\backup\\input";
 	//--------------------------------------------------------------------------
 	// </inputDirectory>
 	//--------------------------------------------------------------------------
 	// <outputDirectory>
 	//--------------------------------------------------------------------------
-	string outputDirectory = "D:\\oam_dist";
+	string outputDirectory = "L:\\oam_dist";
 	//--------------------------------------------------------------------------
 	// </outputDirectory>
 	//--------------------------------------------------------------------------
@@ -64,7 +67,7 @@ string c_fi;
 	//--------------------------------------------------------------------------
 	// <topological charges>
 	//--------------------------------------------------------------------------
-	const int number_of_tp = 2;
+	const int number_of_tp = 4;
 	//--------------------------------------------------------------------------
 	// </topological charges>
 	//--------------------------------------------------------------------------
@@ -101,8 +104,8 @@ string c_fi;
 	// <topological charges>
 	//--------------------------------------------------------------------------
 	string c_tp_s[number_of_tp] = {
-		//{"1"},
-		//{"3"},
+		{"1"},
+		{"3"},
 		{"5"},
 		{"10"},
 		//{"r^0.5"},
@@ -139,10 +142,10 @@ string c_fi;
 	// <the power of fi>
 	//--------------------------------------------------------------------------
 	string c_pow_fi_s[number_of_pow_fi] = {
-		//{"1"},
+		{"1"},
 		//{"1.5"},
 		//{"2"},
-		{"2.5"}
+		//{"2.5"}
 	};
 	//--------------------------------------------------------------------------
 	// </the power of fi>
@@ -156,7 +159,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 		//------------------------------------------------------------------------------
 		// <zoom rule>
 		//------------------------------------------------------------------------------
-		int extension = 2;// pow_fi == 2 || pow_fi == 3 ? 4 : pow_fi == 1 ? 8 : 16;
+		int extension = pow_fi == 2 || pow_fi == 3 ? 4 : pow_fi == 1 ? 8 : 16;
 		//------------------------------------------------------------------------------
 		// </zoom rule>
 		//------------------------------------------------------------------------------
@@ -171,7 +174,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 		//<record reference intensity>
 		//------------------------------------------------------------------------------
 		#ifdef INTENSITY
-			IB_E.write(folder + c_intensity + temp_name, out_field_type::intensity, color_scheme);
+			IB_E.write(folder + c_intensity + temp_name, out_field_type::intensity, intensity_color_scheme);
 		#endif
 		//------------------------------------------------------------------------------
 		//</record reference intensity>
@@ -181,7 +184,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 		//<record reference amplitude>
 		//------------------------------------------------------------------------------
 		#ifdef AMPLITUDE
-			IB_E.write(folder + c_amplitude + temp_name, out_field_type::amplitude, color_scheme);
+			IB_E.write(folder + c_amplitude + temp_name, out_field_type::amplitude, amplitude_color_scheme);
 		#endif
 		//------------------------------------------------------------------------------
 		//</record reference amplitude>
@@ -191,7 +194,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 		//<record reference phase>
 		//------------------------------------------------------------------------------
 		#ifdef PHASE
-			IB_E.write(folder + c_phase + temp_name, out_field_type::argument, color_scheme);
+			IB_E.write(folder + c_phase + temp_name, out_field_type::argument, phase_color_scheme);
 		#endif
 		//------------------------------------------------------------------------------
 		//</record reference phase>
@@ -201,7 +204,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 		//<record reference OAM>
 		//------------------------------------------------------------------------------
 		#ifdef OAM
-			BMP oam(color_scheme);
+			BMP oam(oam_color_scheme);
 			string oam_n = to_string(IB_E.get_oam(oam)[0]);
 			ofstream fout(folder + c_oam + c_tp + ",pow_fi=" + c_pow_fi + ".oam", ios::trunc);
 			fout << oam_n;
@@ -238,7 +241,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 						//------------------------------------------------------------------------------
 						#ifdef INTENSITY
 							name = folder + c_intensity + temp_name;
-							IB.write(name, out_field_type::intensity, color_scheme);
+							IB.write(name, out_field_type::intensity, intensity_color_scheme);
 						#endif
 						//------------------------------------------------------------------------------
 						//</record distorted intensity>
@@ -249,7 +252,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 						//------------------------------------------------------------------------------
 						#ifdef AMPLITUDE
 							name = folder + c_amplitude + temp_name;
-							IB.write(name, out_field_type::amplitude, color_scheme);
+							IB.write(name, out_field_type::amplitude, amplitude_color_scheme);
 						#endif
 						//------------------------------------------------------------------------------
 						//</record distorted amplitude>
@@ -260,7 +263,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 						//------------------------------------------------------------------------------
 						#ifdef PHASE
 							name = folder + c_phase + temp_name;
-							IB.write(name, out_field_type::argument, color_scheme);
+							IB.write(name, out_field_type::argument, phase_color_scheme);
 						#endif
 						//------------------------------------------------------------------------------
 						//</record distorted phase>
@@ -282,7 +285,7 @@ for (int tp = 0; tp < number_of_tp; tp++) {
 						//<record distorted OAM>
 						//------------------------------------------------------------------------------
 						#ifdef OAM
-							BMP oam(color_scheme);
+							BMP oam(oam_color_scheme);
 							string oam_n = to_string(IB.get_oam(oam)[0]);
 							ofstream fout(folder + c_oam + c_tp + ",pow_fi=" + c_pow_fi + ",r_d=" + c_r_d + ",r_hole=" + c_r_hole + ",fi=" + c_fi + ".oam", ios::trunc);
 							fout << oam_n;

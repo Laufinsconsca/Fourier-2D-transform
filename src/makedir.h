@@ -1,7 +1,8 @@
+#pragma once
 #include <direct.h>
 
 //------------------------------------------------------------------------------
-//<creating a folder structure>
+//<creating a nested folder structure>
 //------------------------------------------------------------------------------
 //<args>
 //		filename -> full path of expected directory
@@ -35,5 +36,5 @@ inline void makedir(const char* filename, char* temp) {
 	}
 }
 //------------------------------------------------------------------------------
-//</creating a folder structure>
+//</creating a nested folder structure>
 //------------------------------------------------------------------------------

@@ -20,19 +20,19 @@ inline void multiple_oam_calculation() {
 	string temp_name;
 	string c_fi;
 
-#define WITH_HOLES
+//#define WITH_HOLES
 
 	// <constantDeclaration>
 	//------------------------------------------------------------------------------
 	// <colorScheme>
 	//--------------------------------------------------------------------------
-	scheme color_scheme = scheme::gray;
+	scheme color_scheme = scheme::fire;
 	//--------------------------------------------------------------------------
 	// </colorScheme>
 	//------------------------------------------------------------------------------
 	// <inputDirectory>
 	//--------------------------------------------------------------------------
-	string inputDirectory = "D:\\for_exact_exp_oam_calculating_512";
+	string inputDirectory = "L:\\backup\\input";
 	//--------------------------------------------------------------------------
 	// </inputDirectory>
 	//--------------------------------------------------------------------------

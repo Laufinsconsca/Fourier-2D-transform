@@ -54,8 +54,8 @@ complex_amplitude::complex_amplitude(BMP& amplitudeBMP, BMP& phaseBMP) {
 			y = j++ - size.width/2;
 			amplitude = amplitudeBMP.apply_scheme(*amplitude_column++);
 			phase = 2 * M_PI * double(phaseBMP.apply_scheme(*phase_column++)) / 255;
-			double temp = sqrt(x * x + y * y);
-			if (temp < size.width / 2) {
+			//double temp = sqrt(x * x + y * y);
+			if (sqrt(x * x + y * y) < size.width / 2) {
 				row.push_back(polar(amplitude, phase));
 			}
 			else {
