@@ -14,7 +14,7 @@ using namespace std;
 
 class color_pixel;
 class BMP {
-	int count_RGB_channels = 4;
+	int number_RGB_channels = 4;
 	scheme color_scheme = scheme::color;
 	static int const BMPFILEHEADERsize = 14;
 	static int const BMPINFOHEADERsize = 124;
@@ -28,7 +28,13 @@ private:
 	vector<vector<int>> bmpInfoHeader;
 	vector<vector<int>> colorProfile;
 
-	void initHeader();
+	inline void initHeader() {
+		bmpFileHeader = { {0x4D42, 2}, {size.width * size.height * number_RGB_channels + BMPFILEHEADERsize + BMPINFOHEADERsize + COLORPROFILEsize, 4}, {0, 2}, {0, 2}, {BMPFILEHEADERsize + BMPINFOHEADERsize + COLORPROFILEsize, 4} };
+		bmpInfoHeader = { {BMPINFOHEADERsize, 4}, {size.width, 4}, {size.height, 4}, {1, 2}, {number_RGB_channels * 8, 2}, {BI_BITFIELDS, 4}, {0, 4}, {0xEC4, 4}, {0xEC4, 4}, {0, 4}, {0, 4},
+			{0x00FF0000, 4}, {0x0000FF00, 4}, {0x000000FF, 4}, {-16777216 /*0xFF000000*/, 4}, {LCS_WINDOWS_COLOR_SPACE, 4}, {0, 36}, {0, 4}, {0, 4}, {0, 4},
+			{0, 4}, {0, 4}, {0, 4}, {0, 4} };
+		colorProfile = { {0x000000FF, 4}, {0x0000FF00, 4}, {0x00FF0000, 4} };
+	}
 	vector<unsigned char> toBinary(vector<int> number);
 	static int toNumber(vector<unsigned char> binary) {
 		int temp = 0;
@@ -52,18 +58,17 @@ public:
 	BMP(const BMP& obj);
 
 	BMP& operator=(const BMP& obj);
-	const unsigned char& operator()(int const row, int const column, scheme const color);
+	const unsigned char& operator()(int const row, int const column, int channel);
 	friend ostream& operator<< (ostream& out, BMP& bmp);
 	friend istream& operator>>(istream& in, BMP& bmp);
 
+	vector<vector<vector<unsigned char>>>::iterator first_row();
+	vector<vector<vector<unsigned char>>>::iterator last_row();
 	vector<unsigned char> serialize(scheme color);
 	const image_size get_size();
 	const scheme get_color();
-	const int get_count_RGB_channels();
-	unsigned char apply_scheme(vector<unsigned char> pixel, scheme color);
+	const int get_number_RGB_channels();
 	unsigned char apply_scheme(vector<unsigned char> pixel);
-	vector<vector<vector<unsigned char>>>::iterator first_row();
-	vector<vector<vector<unsigned char>>>::iterator last_row();
 	void write(string filename, scheme color);
 	void write(string filename);
 };

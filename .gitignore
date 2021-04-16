@@ -2,6 +2,7 @@
 /.vs/
 /x64/
 *.json
+*.jpg
 *.bmp
 *.aps
 *.rc

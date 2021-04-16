@@ -9,8 +9,10 @@
 #include "bmp.h";
 #include "out_field_type.h";
 #include "direction.h";
+#include "gauss.h";
 
 class vortex;
+class gauss;
 
 class complex_amplitude {
 	/** The size. */
@@ -39,6 +41,28 @@ private:
 		} while (2 * m <= greater_value);
 		return appropriate_less_value && appropriate_greater_value;
 	};
+	/**********************************************************************************************//**
+	* Initializes the gauss.
+	*
+	* @parameters	gauss	The gauss beam object (by default r = 1).
+	**************************************************************************************************/
+	inline vector<vector<double>>& init_gauss(gauss gauss_beam) {
+		ref_beam.clear();
+		double hx, hy, x, y;
+		hx = 2. / size.width;
+		hy = 2. / size.height;
+		ref_beam.reserve(size.height);
+		for (int i = 0; i < size.height; i++) {
+			y = i * hy - 1;
+			ref_beam.push_back(vector<double>());
+			ref_beam.at(i).reserve(size.width);
+			for (int j = 0; j < size.width; j++) {
+				x = j * hx - 1;
+				ref_beam.at(i).push_back((exp(-(pow(x - gauss_beam.shift, 2) + y * y) / (2 * gauss_beam.sigma * gauss_beam.sigma))));
+			}
+		}
+		return ref_beam;
+	}
 public:
 
 	// Constructors
@@ -46,6 +70,7 @@ public:
 	complex_amplitude(const complex_amplitude& obj);
 	complex_amplitude(BMP& amplitudeBMP, BMP& phaseBMP);
 	complex_amplitude(vortex& vortex, image_size size);
+	complex_amplitude(vortex& vortex, gauss gauss_beam, image_size size);
 	//The overridden operators.
 	complex_amplitude& operator=(const complex_amplitude& obj);
 	complex<double>& operator()(int row, int column);
@@ -60,7 +85,6 @@ public:
 	vector<vector<complex<double>>>& gradient(char var, vector<vector<complex<double>>>& grad);
 	double* get_oam(BMP& oam);
 	void create_hole(vortex& vortex, double r);
-	void init_gauss(double r, double sigma);
 
 	void FFT2D(int expansion);
 	void IFFT2D(int expansion);

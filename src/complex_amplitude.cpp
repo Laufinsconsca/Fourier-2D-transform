@@ -75,51 +75,51 @@ complex_amplitude::complex_amplitude(BMP& amplitudeBMP, BMP& phaseBMP) {
  *
  * @parameters	vortex	[in,out] The vortex.
  * @parameters	size  	The size.
- * @parameters	color 	The color scheme.
  **************************************************************************************************/
 
-complex_amplitude::complex_amplitude(vortex& vortex, image_size size) {
+complex_amplitude::complex_amplitude(vortex& vortex, image_size size) : complex_amplitude(vortex, gauss(0.6, 0), size) {}
+
+/**********************************************************************************************//**
+ * Constructor.
+ *
+ * @parameters	vortex	[in,out] The vortex.
+ * @parameters	ref_beam  	The reference beam.
+ **************************************************************************************************/
+
+complex_amplitude::complex_amplitude(vortex& vortex, gauss gauss_beam, image_size size) {
 	this->size = size;
-	double r = 5;
-	init_gauss(r, 3);
+	this->ref_beam = init_gauss(gauss_beam);
 	double hx, hy;
-	pixels.reserve(size.height);
-	hx = 2 * r / size.width;
-	hy = 2 * r / size.height;
-	pixels.reserve(size.height);
+	this->pixels.reserve(size.height);
+	hx = 2. / size.width;
+	hy = 2. / size.height;
 	vector<double> x_r(size.width);
-	vector<double> x_n(size.width);
-	x_r.at(0) = -r;
-	x_n.at(0) = -size.width/2;
+	x_r.at(0) = -1;
 	for (int i = 1; i < size.width; i++) {
 		x_r.at(i) = x_r.at(i - 1) + hx;
-		x_n.at(i) = x_n.at(i - 1) + 1;
 	}
-	vector<double> y_r(size.width);
-	vector<double> y_n(size.width);
-	y_r.at(0) = -r;
-	y_n.at(0) = -size.height/2;
+	vector<double> y_r(size.height);
+	y_r.at(0) = -1;
 	for (int i = 1; i < size.height; i++) {
 		y_r.at(i) = y_r.at(i - 1) + hy;
-		y_n.at(i) = y_n.at(i - 1) + 1;
 	}
 	for (int i = 0; i < size.height; i++) {
 		vector<complex<double>> row;
 		row.reserve(size.width);
 		for (int j = 0; j < size.width; j++) {
-			if (sqrt(pow(x_n.at(j), 2) + pow(y_n.at(i), 2)) < size.width / 2) {
+			if (pow(x_r.at(j), 2) + pow(y_r.at(i), 2) < 1) {
 				double angle = atan2(-y_r.at(i), x_r.at(j));
-				double t = vortex.tp(sqrt(x_r.at(round(j)) * x_r.at(round(j)) + y_r.at(round(i)) * y_r.at(round(i))));
-				row.push_back(polar(ref_beam.at(i).at(j), t * (angle > 0 ? pow(angle, vortex.pow_fi) : pow(angle + 2 * M_PI, vortex.pow_fi))));
+				double tp = vortex.tp(sqrt(x_r.at(round(j)) * x_r.at(round(j)) + y_r.at(round(i)) * y_r.at(round(i))));
+				row.push_back(polar(ref_beam.at(i).at(j), tp * (angle > 0 ? pow(angle, vortex.pow_fi) : pow(angle + 2 * M_PI, vortex.pow_fi))));
 			}
 			else {
 				row.push_back(0);
 			}
 		}
-		pixels.push_back(row);
+		this->pixels.push_back(row);
 		row.clear();
 	}
-	create_hole(vortex, r);
+	create_hole(vortex, 1);
 }
 
 /**********************************************************************************************//**
@@ -139,30 +139,6 @@ void complex_amplitude::create_hole(vortex& vortex, double r) {
 			if (pow(i - t_cos, 2) + pow(j - t_sin, 2) < pow(vortex.r_hole * n / r, 2)) {
 				pixels.at(i).at(j) = 0;
 			}
-		}
-	}
-}
-
-/**********************************************************************************************//**
- * Initializes the gauss.
- *
- * @parameters	r	 	The relative width of an image (by default r = 5).
- * @parameters	sigma	The sigma.
- **************************************************************************************************/
-
-void complex_amplitude::init_gauss(double r, double sigma) {
-	ref_beam.clear();
-	double hx, hy, x, y;
-	hx = 2 * r / size.width;
-	hy = 2 * r / size.height;
-	ref_beam.reserve(size.height);
-	for (int i = 0; i < size.height; i++) {
-		y = -r + i * hy;
-		ref_beam.push_back(vector<double>());
-		ref_beam.at(i).reserve(size.width);
-		for (int j = 0; j < size.width; j++) {
-			x = -r + j * hx;
-			ref_beam.at(i).push_back((exp(-(x * x + y * y) / (2 * sigma * sigma))));
 		}
 	}
 }
@@ -311,7 +287,7 @@ double complex_amplitude::get_max(out_field_type type) {
 				}
 				break;
 			}
-			case out_field_type::argument: {
+			case out_field_type::phase: {
 				return 2*M_PI;
 			}
 			}
@@ -345,7 +321,7 @@ double complex_amplitude::get_min(out_field_type type) {
 				}
 				break;
 			}
-			case out_field_type::argument: {
+			case out_field_type::phase: {
 				return 0;
 			}
 			}
@@ -446,7 +422,9 @@ double* complex_amplitude::get_oam(BMP& oam)  {
 		vector<double> row;
 		row.reserve(size.width);
 		for (int j = 0; j < size.width; j++) {
-			row.push_back(imag(conj(this->pixels.at(i).at(j)) * (gy.at(i).at(j) * (j - 128.) - gx.at(i).at(j) * (i - 128.))));
+			double width_2 = size.width / 2.;
+			double height_2 = size.height / 2.;
+			row.push_back(imag(conj(this->pixels.at(i).at(j)) * (gy.at(i).at(j) * (j - width_2) - gx.at(i).at(j) * (i - height_2))));
 		}
 		pixels.push_back(row);
 		row.clear();
@@ -473,12 +451,21 @@ double* complex_amplitude::get_oam(BMP& oam)  {
 	}
 	double min = 1e308;
 	max = 0;
+	int i = 0;
+	int j = 0;
+	int i1 = 0;
+	int j1 = 0;
 	for (vector<double> source_row : pixels) {
+		i++;
 		for (double pixel : source_row) {
+			j++;
 			if (min > pixel) {
 				min = pixel;
+				i1 = i;
+				j1 = j;
 			}
 		}
+		j = 0;
 	}
 	for (int i = 0; i < pixels.size(); i++) {
 		for (int j = 0; j < pixels.at(0).size(); j++) {
@@ -525,7 +512,7 @@ void complex_amplitude::write(string filename, out_field_type type, scheme color
 			double output_value;
 			switch (type) {
 			case amplitude: output_value = 255 * abs(pixel) / max; break;
-			case argument: output_value = 255 * (pixel.imag() < 0 ? arg(pixel) + 2 * M_PI : arg(pixel)) * M_1_PI / 2; break;
+			case phase: output_value = 255 * (pixel.imag() < 0 ? arg(pixel) + 2 * M_PI : arg(pixel)) * M_1_PI / 2; break;
 			case intensity: output_value = 255 * std::norm(pixel) / max; break;
 			}
 			//add_channels(output_pixel, count_RGB_channels);
